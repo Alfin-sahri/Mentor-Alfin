@@ -2690,59 +2690,33 @@ lucide.createIcons();
 
 </script>
 <script type="module">
-  // Import the functions you need from the SDKs you need
-  import { initializeApp } from "https://www.gstatic.com/firebasejs/12.11.0/firebase-app.js";
-  import { getAnalytics } from "https://www.gstatic.com/firebasejs/12.11.0/firebase-analytics.js";
-   import { 
+import { initializeApp } from "https://www.gstatic.com/firebasejs/12.11.0/firebase-app.js";
+
+import { 
   getFirestore, 
   collection, 
-  addDoc, 
-  getDocs 
+  addDoc 
 } from "https://www.gstatic.com/firebasejs/12.11.0/firebase-firestore.js";
 
 const firebaseConfig = {
-  apiKey: "ISI PUNYA KAMU",
-  authDomain: "ISI PUNYA KAMU",
-  projectId: "ISI PUNYA KAMU",
+  apiKey: "ISI",
+  authDomain: "ISI",
+  projectId: "ISI",
 };
 
 const app = initializeApp(firebaseConfig);
-const db = getFirestore(app); // 🔥 INI YANG KURANG
-  // TODO: Add SDKs for Firebase products that you want to use
-  // https://firebase.google.com/docs/web/setup#available-libraries
+const db = getFirestore(app);
 
-  // Your web app's Firebase configuration
-  // For Firebase JS SDK v7.20.0 and later, measurementId is optional
-  const firebaseConfig = {
-    apiKey: "AIzaSyAT7i68zQqbhonGuZRkc_gQQ3_Ip3oDwT4",
-    authDomain: "mentor-alfin.firebaseapp.com",
-    projectId: "mentor-alfin",
-    storageBucket: "mentor-alfin.firebasestorage.app",
-    messagingSenderId: "180664889822",
-    appId: "1:180664889822:web:1557bd9fcb5e92dc4c2d4f",
-    measurementId: "G-NLLL6PSBJQ"
-  };
-
-  // Initialize Firebase
-  const app = initializeApp(firebaseConfig);
-  const analytics = getAnalytics(app);
-  async function tambahData() {
+async function tambahData() {
   await addDoc(collection(db, "materi"), {
-    judul: "Tes Materi",
-    isi: "Ini dari website"
+    nama: "Test"
   });
-  alert("Data berhasil ditambah!");
+  alert("Berhasil tambah data");
 }
 
-async function ambilData() {
-  const querySnapshot = await getDocs(collection(db, "materi"));
-  querySnapshot.forEach((doc) => {
-    console.log(doc.data());
-  });
-}
-
+// 🔥 WAJIB biar tombol bisa akses
 window.tambahData = tambahData;
-window.ambilData = ambilData;
+
 </script>
   
 </body>
