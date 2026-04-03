@@ -49,6 +49,8 @@
   </style>
 </head>
 <body>
+  <button onclick="tambahData()">Tambah Data</button>
+<button onclick="ambilData()">Ambil Data</button>
   <div class="app-wrapper bg-slate-50">
     
     <div id="loginModal" class="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
@@ -2709,6 +2711,23 @@ lucide.createIcons();
   // Initialize Firebase
   const app = initializeApp(firebaseConfig);
   const analytics = getAnalytics(app);
+  async function tambahData() {
+  await addDoc(collection(db, "materi"), {
+    judul: "Tes Materi",
+    isi: "Ini dari website"
+  });
+  alert("Data berhasil ditambah!");
+}
+
+async function ambilData() {
+  const querySnapshot = await getDocs(collection(db, "materi"));
+  querySnapshot.forEach((doc) => {
+    console.log(doc.data());
+  });
+}
+
+window.tambahData = tambahData;
+window.ambilData = ambilData;
 </script>
   
 </body>
