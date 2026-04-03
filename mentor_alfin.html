@@ -1,0 +1,2692 @@
+<!doctype html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Dashboard Mentor Alfin</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://cdn.jsdelivr.net/npm/lucide@0.263.0/dist/umd/lucide.min.js"></script>
+  <style>
+    * { box-sizing: border-box; }
+    html, body { height: 100%; margin: 0; }
+    body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background: #f8fafc; }
+    .app-wrapper { min-height: 100%; display: flex; flex-direction: column; }
+    .main-content { flex: 1; overflow-y: auto; }
+    .sec { display: none; animation: fadeIn .25s ease-in; }
+    .sec.active { display: block; }
+    @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+    .hero {
+      background: linear-gradient(135deg, #c41e3a 0%, #ffd700 50%, #1e3a8a 100%);
+      position: relative;
+      overflow: hidden;
+    }
+    .hero::before {
+      content: '';
+      position: absolute;
+      top: -40%;
+      right: -10%;
+      width: 420px;
+      height: 420px;
+      border-radius: 50%;
+      background: rgba(255,255,255,.12);
+      animation: float 8s ease-in-out infinite;
+    }
+    @keyframes float { 0%,100%{transform:translateY(0)} 50%{transform:translateY(-28px)} }
+    .btn1, .btn2, .card, .form-input, .tab-btn { transition: all .25s ease; }
+    .btn1 { background: linear-gradient(135deg, #c41e3a, #8f1028); }
+    .btn2 { background: linear-gradient(135deg, #1d4ed8, #1e3a8a); }
+    .btn1:hover, .btn2:hover { transform: translateY(-2px); }
+    .card { border: 1px solid #e2e8f0; }
+    .card:hover { transform: translateY(-6px); box-shadow: 0 16px 32px rgba(0,0,0,.08); border-color: #cbd5e1; }
+    .form-input { border: 2px solid #e2e8f0; }
+    .form-input:focus { outline: none; border-color: #c41e3a; box-shadow: 0 0 0 3px rgba(196,30,58,.1); }
+    .tab-btn.active { background: #2563eb; color: white; }
+    .toast-notification { animation: slideInRight .25s ease-out; }
+    @keyframes slideInRight { from { opacity:0; transform:translateX(20px)} to { opacity:1; transform:translateX(0)} }
+    .delete-btn { transition: background-color .2s ease; }
+    .accordion-content { display: none; }
+    .accordion-content.open { display: block; }
+  </style>
+</head>
+<body>
+  <div class="app-wrapper bg-slate-50">
+    
+    <div id="loginModal" class="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
+      <div class="bg-white w-full max-w-md rounded-2xl shadow-2xl overflow-hidden">
+        <div class="bg-gradient-to-r from-red-600 to-blue-900 text-white p-8 text-center">
+          <i data-lucide="shield-check" class="mx-auto mb-3 w-12 h-12"></i>
+          <h2 class="text-3xl font-bold">Login Dashboard</h2>
+          <p class="text-sm opacity-90 mt-2">Pilih peran: Mentor atau Siswa</p>
+        </div>
+        <div class="p-6 space-y-4">
+          <div class="grid grid-cols-2 gap-3">
+            <button id="roleMentorBtn" onclick="setLoginRole('admin')" class="rounded-lg py-3 font-bold bg-slate-900 text-white">Mentor</button>
+            <button id="roleSiswaBtn" onclick="setLoginRole('student')" class="rounded-lg py-3 font-bold bg-slate-200 text-slate-700">Siswa</button>
+          </div>
+          <div>
+            <label for="nameInput" id="loginNameLabel" class="block font-semibold mb-2 text-slate-700">Username Mentor</label>
+            <input id="nameInput" type="text" class="w-full form-input rounded-lg px-4 py-3" placeholder="Masukkan username / nama siswa" />
+          </div>
+          <div>
+            <label for="pinInput" class="block font-semibold mb-2 text-slate-700">PIN</label>
+            <input id="pinInput" type="password" maxlength="4" class="w-full form-input rounded-lg px-4 py-3 text-center tracking-widest" placeholder="4 digit" />
+          </div>
+          <div id="loginHint" class="text-xs text-slate-500 bg-slate-50 border border-slate-200 rounded-lg px-4 py-3">
+            Gunakan kredensial sesuai peran Anda. Akun siswa hanya bisa masuk jika sudah didaftarkan admin.
+          </div>
+          <div id="loginError" class="hidden text-sm text-red-700 bg-red-50 border border-red-200 rounded-lg px-4 py-3"></div>
+          <button onclick="login()" class="w-full btn1 text-white rounded-lg py-3 font-bold">Masuk</button>
+        </div>
+      </div>
+    </div>
+
+<div id="toast" class="fixed top-4 right-4 z-50 hidden toast-notification"></div>
+
+    <div id="confirmationModal" class="fixed inset-0 bg-black/50 z-50 hidden items-center justify-center p-4">
+      <div class="bg-white w-full max-w-sm rounded-xl shadow-2xl overflow-hidden">
+        <div class="p-6">
+          <h3 id="confirmTitle" class="text-xl font-bold text-slate-800 mb-2"></h3>
+          <p id="confirmMessage" class="text-slate-600 mb-6"></p>
+          <div class="flex gap-3 justify-end">
+            <button onclick="closeConfirmation()" class="px-4 py-2 rounded-lg border border-slate-300 text-slate-700 font-semibold hover:bg-slate-50">Batal</button>
+            <button id="confirmBtn" onclick="confirmAction()" class="px-4 py-2 rounded-lg bg-red-600 text-white font-semibold hover:bg-red-700">Hapus</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    
+    <header class="sticky top-0 z-40 bg-white/95 backdrop-blur shadow-sm">
+      <div class="max-w-7xl mx-auto px-4 py-4 flex items-center justify-between">
+        <div class="flex items-center gap-3">
+          <div class="w-10 h-10 rounded-lg bg-gradient-to-br from-red-600 to-yellow-500 flex items-center justify-center shadow-md">
+            <i data-lucide="book-open" class="text-white w-5 h-5"></i>
+          </div>
+          <div>
+            <h1 id="appTitle" class="font-bold text-lg sm:text-xl bg-gradient-to-r from-red-600 via-yellow-500 to-blue-900 bg-clip-text text-transparent">Ruangan Mentor Alfin</h1>
+            <p id="greet" class="text-xs text-slate-500">Hi, User</p>
+          </div>
+        </div>
+        <nav class="hidden md:flex gap-6 text-sm font-semibold items-center">
+          <button id="navHome" onclick="showSec('home')" class="text-slate-700 hover:text-red-600 transition">Beranda</button>
+          <button id="navLatihan" onclick="showSec('latihan')" class="text-slate-700 hover:text-red-600 transition">Latihan</button>
+          <button id="navTryout" onclick="showSec('tryout')" class="text-slate-700 hover:text-red-600 transition">Tryout</button>
+          <button id="navTranskrip" onclick="showSec('transkrip')" class="text-slate-700 hover:text-red-600 transition">Transkrip Nilai</button>
+          <button id="navMonitoring" onclick="showSec('monitoring')" class="text-slate-700 hover:text-red-600 transition hidden">Monitoring</button>
+          <button id="navMentor" onclick="showSec('admin')" class="text-slate-700 hover:text-red-600 transition hidden">Mentor</button>
+          <button id="logoutBtn" onclick="logout()" class="px-3 py-2 rounded-lg bg-slate-900 text-white hover:bg-slate-800 transition">Keluar</button>
+        </nav>
+        <button class="md:hidden p-2 hover:bg-slate-100 rounded-lg transition" onclick="toggleMenu()">
+          <i data-lucide="menu" class="w-5 h-5"></i>
+        </button>
+      </div>
+      <div id="mobileMenu" class="hidden md:hidden border-t px-4 py-3 space-y-2 bg-white">
+        <button id="mNavHome" onclick="showSec('home')" class="block w-full text-left py-2 text-slate-700 hover:text-red-600">Beranda</button>
+        <button id="mNavLatihan" onclick="showSec('latihan')" class="block w-full text-left py-2 text-slate-700 hover:text-red-600">Latihan</button>
+        <button id="mNavTryout" onclick="showSec('tryout')" class="block w-full text-left py-2 text-slate-700 hover:text-red-600">Tryout</button>
+        <button id="mNavTranskrip" onclick="showSec('transkrip')" class="block w-full text-left py-2 text-slate-700 hover:text-red-600">Transkrip Nilai</button>
+        <button id="mNavMonitoring" onclick="showSec('monitoring')" class="block w-full text-left py-2 text-slate-700 hover:text-red-600 hidden">Monitoring</button>
+        <button id="mNavMentor" onclick="showSec('admin')" class="block w-full text-left py-2 text-slate-700 hover:text-red-600 hidden">Mentor</button>
+        <button onclick="logout()" class="block w-full text-left py-2 text-slate-700 hover:text-red-600">Keluar</button>
+      </div>
+    </header>
+
+
+    <main class="main-content w-full">
+      <section id="home" class="sec active">
+        <div class="hero min-h-[calc(100vh-160px)] flex items-center justify-center px-4 text-center relative z-10">
+          <div class="max-w-4xl">
+            <h2 class="text-5xl sm:text-6xl font-bold text-white mb-4 drop-shadow-lg">MENTOR ALFIN</h2>
+            <p class="text-white/95 text-lg sm:text-xl mb-8 drop-shadow">Dashboard dinamis untuk materi, latihan, essay, dan tryout</p>
+            <div class="flex flex-col sm:flex-row gap-4 justify-center mb-10">
+              <button onclick="showSec('latihan')" class="btn1 text-white px-8 py-4 rounded-xl font-bold text-lg">Mulai Latihan</button>
+              <button onclick="showSec('tryout')" class="btn2 text-white px-8 py-4 rounded-xl font-bold text-lg">Buka Tryout</button>
+            </div>
+            <div class="grid grid-cols-1 sm:grid-cols-4 gap-4">
+              <div class="bg-white/20 backdrop-blur rounded-xl p-5 text-white border border-white/30">
+                <div id="statMateri" class="text-4xl font-bold">0</div>
+                <div class="text-sm font-semibold mt-1">Materi</div>
+              </div>
+              <div class="bg-white/20 backdrop-blur rounded-xl p-5 text-white border border-white/30">
+                <div id="statLatihan" class="text-4xl font-bold">0</div>
+                <div class="text-sm font-semibold mt-1">Latihan</div>
+              </div>
+              <div class="bg-white/20 backdrop-blur rounded-xl p-5 text-white border border-white/30">
+                <div id="statEssay" class="text-4xl font-bold">0</div>
+                <div class="text-sm font-semibold mt-1">Essay</div>
+              </div>
+              <div class="bg-white/20 backdrop-blur rounded-xl p-5 text-white border border-white/30">
+                <div id="statTryout" class="text-4xl font-bold">0</div>
+                <div class="text-sm font-semibold mt-1">Tryout</div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="max-w-6xl mx-auto px-4 py-16 bg-white mt-2">
+          <h3 class="text-3xl sm:text-4xl font-bold text-center mb-12 text-slate-800">Fitur Utama</h3>
+          <div class="grid md:grid-cols-2 lg:grid-cols-4 gap-6">
+            <div class="card bg-white rounded-2xl p-8 shadow-sm">
+              <div class="w-12 h-12 rounded-lg bg-blue-100 flex items-center justify-center mb-4"><i data-lucide="book-open" class="text-blue-600 w-6 h-6"></i></div>
+              <h4 class="font-bold text-lg mb-3 text-slate-800">Latihan Soal</h4>
+              <p class="text-sm text-slate-600">Materi dan soal latihan pilihan ganda dirender otomatis dari data admin.</p>
+            </div>
+            <div class="card bg-white rounded-2xl p-8 shadow-sm">
+              <div class="w-12 h-12 rounded-lg bg-red-100 flex items-center justify-center mb-4"><i data-lucide="pen-tool" class="text-red-600 w-6 h-6"></i></div>
+              <h4 class="font-bold text-lg mb-3 text-slate-800">Essay</h4>
+              <p class="text-sm text-slate-600">Essay per materi bisa ditambah dari panel admin dan otomatis masuk ke user.</p>
+            </div>
+            <div class="card bg-white rounded-2xl p-8 shadow-sm">
+              <div class="w-12 h-12 rounded-lg bg-yellow-100 flex items-center justify-center mb-4"><i data-lucide="target" class="text-yellow-600 w-6 h-6"></i></div>
+              <h4 class="font-bold text-lg mb-3 text-slate-800">Tryout</h4>
+              <p class="text-sm text-slate-600">Paket tryout dibentuk dinamis dari soal yang ditambahkan admin.</p>
+            </div>
+            <div class="card bg-white rounded-2xl p-8 shadow-sm">
+              <div class="w-12 h-12 rounded-lg bg-green-100 flex items-center justify-center mb-4"><i data-lucide="bar-chart-3" class="text-green-600 w-6 h-6"></i></div>
+              <h4 class="font-bold text-lg mb-3 text-slate-800">Monitoring</h4>
+              <p class="text-sm text-slate-600">Ringkasan jumlah materi, latihan, essay, dan tryout secara real-time.</p>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section id="latihan" class="sec max-w-6xl mx-auto px-4 py-12">
+        <div class="mb-8">
+          <h2 class="text-4xl font-bold text-slate-800 mb-2">Menu Latihan</h2>
+          <p class="text-slate-600">Materi ditambah dari admin dan otomatis muncul di sini</p>
+        </div>
+        <div id="materiContainer" class="space-y-4"></div>
+      </section>
+
+      
+      <section id="quiz" class="sec max-w-5xl mx-auto px-4 py-12">
+        <div id="quizContainer"></div>
+      </section>
+
+      <section id="essay" class="sec max-w-5xl mx-auto px-4 py-12">
+        <div id="essayContainer"></div>
+      </section>
+
+      <section id="tryoutQuiz" class="sec max-w-5xl mx-auto px-4 py-12">
+        <div id="tryoutQuizContainer"></div>
+      </section>
+
+      <section id="tryout" class="sec max-w-6xl mx-auto px-4 py-12">
+        <div class="mb-8">
+          <h2 class="text-4xl font-bold text-slate-800 mb-2">Menu Tryout</h2>
+          <p class="text-slate-600">Paket tryout dibentuk otomatis berdasarkan soal yang ditambahkan admin</p>
+        </div>
+        <div id="tryoutGrid" class="grid md:grid-cols-2 gap-8"></div>
+      </section>
+
+      
+      
+      <section id="transkrip" class="sec max-w-6xl mx-auto px-4 py-12">
+        <div class="mb-8">
+          <h2 class="text-4xl font-bold text-slate-800 mb-2">Transkrip Nilai</h2>
+          <p class="text-slate-600">Ringkasan hasil belajar pribadi siswa, termasuk paket yang sudah dikerjakan dan materi yang perlu dipelajari kembali.</p>
+        </div>
+        <div class="grid md:grid-cols-4 gap-6 mb-8">
+          <div class="card bg-white rounded-xl shadow-sm p-6 border-l-4 border-blue-500"><p class="text-sm font-semibold text-slate-500 mb-1">Paket Dikerjakan</p><p id="trTotalPaket" class="text-3xl font-bold text-blue-600">0</p></div>
+          <div class="card bg-white rounded-xl shadow-sm p-6 border-l-4 border-green-500"><p class="text-sm font-semibold text-slate-500 mb-1">Rata-rata Nilai</p><p id="trAvg" class="text-3xl font-bold text-green-600">0%</p></div>
+          <div class="card bg-white rounded-xl shadow-sm p-6 border-l-4 border-emerald-500"><p class="text-sm font-semibold text-slate-500 mb-1">Materi Dikuasai</p><p id="trMastered" class="text-3xl font-bold text-emerald-600">0</p></div>
+          <div class="card bg-white rounded-xl shadow-sm p-6 border-l-4 border-amber-500"><p class="text-sm font-semibold text-slate-500 mb-1">Perlu Dipelajari</p><p id="trNeed" class="text-3xl font-bold text-amber-600">0</p></div>
+        </div>
+        <div id="transcriptInsights" class="bg-gradient-to-r from-blue-50 to-indigo-50 border border-blue-200 rounded-2xl p-6 mb-8"></div>
+        <div class="grid lg:grid-cols-2 gap-8 mb-8">
+          <div class="bg-white rounded-2xl shadow-sm border border-slate-200 p-8">
+            <h3 class="text-xl font-bold text-slate-800 mb-6">Materi Saya</h3>
+            <div id="transcriptMaterialList" class="space-y-3 text-sm text-slate-700"></div>
+          </div>
+          <div class="bg-white rounded-2xl shadow-sm border border-slate-200 p-8">
+            <h3 class="text-xl font-bold text-slate-800 mb-6">Riwayat Paket</h3>
+            <div id="transcriptResultList" class="space-y-3 text-sm text-slate-700"></div>
+          </div>
+        </div>
+      </section>
+
+<section id="monitoring" class="sec max-w-6xl mx-auto px-4 py-12">
+        <div class="mb-8">
+          <h2 class="text-4xl font-bold text-slate-800 mb-2">Monitoring & Rekapitulasi</h2>
+          <p class="text-slate-600">Nilai otomatis masuk ke rekap. Panel ini membantu melihat materi yang sudah dikuasai dan yang masih perlu dipelajari.</p>
+        </div>
+        <div class="grid md:grid-cols-4 gap-6 mb-8">
+          <div class="card bg-white rounded-xl shadow-sm p-6 border-l-4 border-blue-500"><p class="text-sm font-semibold text-slate-500 mb-1">Paket Dikerjakan</p><p id="monTotalPaket" class="text-3xl font-bold text-blue-600">0</p></div>
+          <div class="card bg-white rounded-xl shadow-sm p-6 border-l-4 border-green-500"><p class="text-sm font-semibold text-slate-500 mb-1">Rata-rata Nilai</p><p id="monAvg" class="text-3xl font-bold text-green-600">0%</p></div>
+          <div class="card bg-white rounded-xl shadow-sm p-6 border-l-4 border-emerald-500"><p class="text-sm font-semibold text-slate-500 mb-1">Materi Dikuasai</p><p id="monMastered" class="text-3xl font-bold text-emerald-600">0</p></div>
+          <div class="card bg-white rounded-xl shadow-sm p-6 border-l-4 border-amber-500"><p class="text-sm font-semibold text-slate-500 mb-1">Perlu Dipelajari</p><p id="monNeed" class="text-3xl font-bold text-amber-600">0</p></div>
+        </div>
+        <div id="monitorInsights" class="bg-gradient-to-r from-blue-50 to-indigo-50 border border-blue-200 rounded-2xl p-6 mb-8"></div>
+        <div class="grid lg:grid-cols-2 gap-8 mb-8">
+          <div class="bg-white rounded-2xl shadow-sm border border-slate-200 p-8">
+            <h3 class="text-xl font-bold text-slate-800 mb-6">Materi Paling Dikuasai</h3>
+            <div id="monitorStrongList" class="space-y-3 text-sm text-slate-700"></div>
+          </div>
+          <div class="bg-white rounded-2xl shadow-sm border border-slate-200 p-8">
+            <h3 class="text-xl font-bold text-slate-800 mb-6">Materi yang Perlu Fokus</h3>
+            <div id="monitorWeakList" class="space-y-3 text-sm text-slate-700"></div>
+          </div>
+        </div>
+        <div class="grid lg:grid-cols-2 gap-8 mb-8">
+          <div class="bg-white rounded-2xl shadow-sm border border-slate-200 p-8">
+            <h3 class="text-xl font-bold text-slate-800 mb-6">Rekap per Siswa</h3>
+            <div id="monitorStudentList" class="space-y-3 text-sm text-slate-700"></div>
+          </div>
+          <div class="bg-white rounded-2xl shadow-sm border border-slate-200 p-8">
+            <h3 class="text-xl font-bold text-slate-800 mb-6">Aktivitas Terbaru</h3>
+            <div id="monitorRecentList" class="space-y-3 text-sm text-slate-700"></div>
+          </div>
+        </div>
+      </section>
+
+      <section id="admin" class="sec max-w-6xl mx-auto px-4 py-12">
+        <div class="mb-8">
+          <h2 class="text-4xl font-bold text-slate-800 mb-2">Panel Mentor</h2>
+          <p class="text-slate-600">Tambah materi, latihan, essay, dan tryout. Semua perubahan otomatis sinkron ke sisi user.</p>
+        </div>
+
+        <div class="flex flex-wrap gap-3 mb-8">
+          <button class="tab-btn admin-tab-btn active px-4 py-2 rounded-lg bg-slate-900 text-white font-semibold" data-tab="siswa" onclick="switchMentorTab('siswa')">Siswa</button>
+          <button class="tab-btn admin-tab-btn px-4 py-2 rounded-lg bg-slate-200 font-semibold" data-tab="materi" onclick="switchMentorTab('materi')">Materi</button>
+          <button class="tab-btn admin-tab-btn px-4 py-2 rounded-lg bg-slate-200 font-semibold" data-tab="latihan" onclick="switchMentorTab('latihan')">Latihan PG</button>
+          <button class="tab-btn admin-tab-btn px-4 py-2 rounded-lg bg-slate-200 font-semibold" data-tab="essay" onclick="switchMentorTab('essay')">Essay</button>
+          <button class="tab-btn admin-tab-btn px-4 py-2 rounded-lg bg-slate-200 font-semibold" data-tab="essaygrade" onclick="switchMentorTab('essaygrade')">Penilaian Essay</button>
+          <button class="tab-btn admin-tab-btn px-4 py-2 rounded-lg bg-slate-200 font-semibold" data-tab="tryout" onclick="switchMentorTab('tryout')">Tryout</button>
+          <button class="tab-btn admin-tab-btn px-4 py-2 rounded-lg bg-slate-200 font-semibold" data-tab="adminpin" onclick="switchMentorTab('adminpin')">PIN Mentor</button>
+        </div>
+
+        
+        <div id="adminTab-siswa" class="admin-tab-panel">
+          <div class="grid lg:grid-cols-2 gap-8">
+            <div class="bg-white rounded-2xl shadow-sm border border-slate-200 p-8">
+              <div class="flex items-center gap-2 mb-6">
+                <div class="w-10 h-10 rounded-lg bg-emerald-100 flex items-center justify-center"><i data-lucide="user-plus" class="w-5 h-5 text-emerald-600"></i></div>
+                <h3 class="text-xl font-bold text-slate-800">Tambah / Edit Siswa</h3>
+              </div>
+              <input type="hidden" id="adminStudentEditId" />
+              <div class="space-y-4">
+                <div>
+                  <label for="adminStudentName" class="block text-sm font-semibold text-slate-700 mb-2">Nama Siswa</label>
+                  <input id="adminStudentName" type="text" class="w-full form-input rounded-lg px-4 py-3" placeholder="Contoh: Ahmad Fauzi" />
+                </div>
+                <div>
+                  <label for="adminStudentPin" class="block text-sm font-semibold text-slate-700 mb-2">PIN Siswa</label>
+                  <input id="adminStudentPin" maxlength="4" type="text" class="w-full form-input rounded-lg px-4 py-3" placeholder="4 digit" />
+                </div>
+                <div class="grid grid-cols-2 gap-3">
+                  <button onclick="addOrUpdateStudent()" class="w-full bg-emerald-600 text-white rounded-lg py-3 font-bold hover:bg-emerald-700 transition">Simpan Siswa</button>
+                  <button onclick="resetStudentForm()" class="w-full bg-slate-200 text-slate-700 rounded-lg py-3 font-bold hover:bg-slate-300 transition">Reset Form</button>
+                </div>
+                <div class="text-xs text-slate-500 bg-slate-50 border border-slate-200 rounded-lg px-4 py-3">
+                  Hanya siswa yang didaftarkan admin yang dapat login. Nama dan PIN bisa diedit kapan saja dari panel ini.
+                </div>
+              </div>
+            </div>
+            <div class="bg-white rounded-2xl shadow-sm border border-slate-200 p-8">
+              <div class="flex items-center gap-2 mb-6">
+                <div class="w-10 h-10 rounded-lg bg-slate-100 flex items-center justify-center"><i data-lucide="users" class="w-5 h-5 text-slate-600"></i></div>
+                <h3 class="text-xl font-bold text-slate-800">Daftar Siswa Terdaftar</h3>
+              </div>
+              <div id="adminStudentList" class="space-y-3 max-h-[540px] overflow-y-auto"></div>
+            </div>
+          </div>
+        </div>
+
+<div id="adminTab-materi" class="admin-tab-panel">
+          <div class="grid lg:grid-cols-2 gap-8">
+            <div class="bg-white rounded-2xl shadow-sm border border-slate-200 p-8">
+              <div class="flex items-center gap-2 mb-6"><div class="w-10 h-10 rounded-lg bg-blue-100 flex items-center justify-center"><i data-lucide="plus" class="w-5 h-5 text-blue-600"></i></div><h3 class="text-xl font-bold text-slate-800">Tambah Materi</h3></div>
+              <div class="space-y-4">
+                <div>
+                  <label for="adminMateriNama" class="block text-sm font-semibold text-slate-700 mb-2">Nama Materi</label>
+                  <input id="adminMateriNama" type="text" class="w-full form-input rounded-lg px-4 py-3" placeholder="Contoh: Materi 2" />
+                </div>
+                <div>
+                  <label for="adminMateriDeskripsi" class="block text-sm font-semibold text-slate-700 mb-2">Deskripsi Materi</label>
+                  <textarea id="adminMateriDeskripsi" class="w-full form-input rounded-lg px-4 py-3 h-28 resize-none" placeholder="Deskripsi singkat materi"></textarea>
+                </div>
+                <button onclick="addMateri()" class="w-full bg-blue-600 text-white rounded-lg py-3 font-bold hover:bg-blue-700 transition">Simpan Materi</button>
+              </div>
+            </div>
+            <div class="bg-white rounded-2xl shadow-sm border border-slate-200 p-8">
+              <div class="flex items-center gap-2 mb-6"><div class="w-10 h-10 rounded-lg bg-slate-100 flex items-center justify-center"><i data-lucide="list" class="w-5 h-5 text-slate-600"></i></div><h3 class="text-xl font-bold text-slate-800">Daftar Materi</h3></div>
+              <div id="adminMateriList" class="space-y-3 max-h-[420px] overflow-y-auto"></div>
+            </div>
+          </div>
+        </div>
+
+        <div id="adminTab-latihan" class="admin-tab-panel hidden">
+          <div class="grid lg:grid-cols-2 gap-8">
+            <div class="bg-white rounded-2xl shadow-sm border border-slate-200 p-8">
+              <h3 class="text-xl font-bold text-slate-800 mb-2">Input Massal Soal Latihan PG</h3>
+              <p class="text-sm text-slate-500 mb-6">Paste banyak soal sekaligus. Sistem akan membentuk <strong>Latihan 1, 2, 3...</strong> otomatis per 10 soal lengkap.</p>
+              <div class="space-y-4">
+                <div>
+                  <label class="block text-sm font-semibold text-slate-700 mb-2">Pilih Materi</label>
+                  <select id="adminLatihanMateri" class="w-full form-input rounded-lg px-4 py-3"></select>
+                </div>
+                <div>
+                  <label class="block text-sm font-semibold text-slate-700 mb-2">Format per baris</label>
+                  <div class="text-xs text-slate-500 bg-slate-50 border border-slate-200 rounded-lg px-4 py-3">pertanyaan|opsiA|opsiB|opsiC|opsiD|jawabanBenar|pembahasan (pembahasan opsional)</div>
+                </div>
+                <div>
+                  <label class="block text-sm font-semibold text-slate-700 mb-2">Bulk Input Soal</label>
+                  <textarea id="adminLatihanBulk" class="w-full form-input rounded-lg px-4 py-3 h-72 resize-y" placeholder="Apa dasar negara Indonesia?|Pancasila|UUD 1945|Bhinneka Tunggal Ika|NKRI|A|Pancasila adalah dasar negara
+Apa semboyan negara Indonesia?|Tut Wuri Handayani|Bhinneka Tunggal Ika|Indonesia Raya|Garuda Pancasila|B|Semboyan negara adalah Bhinneka Tunggal Ika"></textarea>
+                </div>
+                <button onclick="bulkAddLatihan()" class="w-full bg-blue-600 text-white rounded-lg py-3 font-bold hover:bg-blue-700 transition">Proses Soal Latihan Massal</button>
+              </div>
+            </div>
+            <div class="bg-white rounded-2xl shadow-sm border border-slate-200 p-8">
+              <h3 class="text-xl font-bold text-slate-800 mb-2">Bank Soal Latihan</h3>
+              <p class="text-sm text-slate-500 mb-6">Paket tampil ke user hanya jika sudah genap 10 soal per latihan.</p>
+              <div id="adminLatihanList" class="space-y-3 max-h-[540px] overflow-y-auto"></div>
+            </div>
+          </div>
+        </div>
+
+        <div id="adminTab-essay" class="admin-tab-panel hidden">
+          <div class="grid lg:grid-cols-2 gap-8">
+            <div class="bg-white rounded-2xl shadow-sm border border-slate-200 p-8">
+              <h3 class="text-xl font-bold text-slate-800 mb-2">Input Massal Soal Essay</h3>
+              <p class="text-sm text-slate-500 mb-6">Paste banyak soal essay sekaligus. Sistem akan membentuk <strong>Essay 1, 2, 3...</strong> otomatis per 5 soal lengkap.</p>
+              <div class="space-y-4">
+                <div>
+                  <label class="block text-sm font-semibold text-slate-700 mb-2">Pilih Materi</label>
+                  <select id="adminEssayMateri" class="w-full form-input rounded-lg px-4 py-3"></select>
+                </div>
+                <div>
+                  <label class="block text-sm font-semibold text-slate-700 mb-2">Format per baris</label>
+                  <div class="text-xs text-slate-500 bg-slate-50 border border-slate-200 rounded-lg px-4 py-3">pertanyaan|kunciJawaban</div>
+                </div>
+                <div>
+                  <label class="block text-sm font-semibold text-slate-700 mb-2">Bulk Input Essay</label>
+                  <textarea id="adminEssayBulk" class="w-full form-input rounded-lg px-4 py-3 h-72 resize-y" placeholder="Jelaskan makna Pancasila dalam kehidupan berbangsa!|Pancasila adalah dasar negara dan pandangan hidup bangsa.
+Apa arti wawasan kebangsaan?|Cara pandang bangsa Indonesia yang mengutamakan persatuan dan kesatuan."></textarea>
+                </div>
+                <button onclick="bulkAddEssay()" class="w-full bg-orange-600 text-white rounded-lg py-3 font-bold hover:bg-orange-700 transition">Proses Soal Essay Massal</button>
+              </div>
+            </div>
+            <div class="bg-white rounded-2xl shadow-sm border border-slate-200 p-8">
+              <h3 class="text-xl font-bold text-slate-800 mb-2">Bank Soal Essay</h3>
+              <p class="text-sm text-slate-500 mb-6">Paket tampil ke user hanya jika sudah genap 5 soal per essay.</p>
+              <div id="adminEssayList" class="space-y-3 max-h-[540px] overflow-y-auto"></div>
+            </div>
+          
+</div>
+        </div>
+
+        <div id="adminTab-essaygrade" class="admin-tab-panel hidden">
+          <div class="grid lg:grid-cols-2 gap-8">
+            <div class="bg-white rounded-2xl shadow-sm border border-slate-200 p-8">
+              <div class="flex items-center gap-2 mb-6">
+                <div class="w-10 h-10 rounded-lg bg-amber-100 flex items-center justify-center"><i data-lucide="clipboard-check" class="w-5 h-5 text-amber-600"></i></div>
+                <h3 class="text-xl font-bold text-slate-800">Penilaian Essay Siswa</h3>
+              </div>
+              <input type="hidden" id="essayGradeResultId" />
+              <div id="essayGradeMeta" class="mb-4 rounded-xl bg-slate-50 border border-slate-200 p-4 text-sm text-slate-600">
+                Pilih salah satu kiriman essay dari daftar di samping untuk mulai memberi nilai dan komentar.
+              </div>
+              <div class="space-y-4">
+                <div>
+                  <label for="essayGradeScore" class="block text-sm font-semibold text-slate-700 mb-2">Nilai Essay (0-100)</label>
+                  <input id="essayGradeScore" type="number" min="0" max="100" class="w-full form-input rounded-lg px-4 py-3" placeholder="Contoh: 85" />
+                </div>
+                <div>
+                  <label for="essayGradeComment" class="block text-sm font-semibold text-slate-700 mb-2">Komentar Mentor</label>
+                  <textarea id="essayGradeComment" class="w-full form-input rounded-lg px-4 py-3 h-40 resize-y" placeholder="Tulis apresiasi, catatan perbaikan, dan saran belajar lanjutan untuk siswa."></textarea>
+                </div>
+                <div class="grid grid-cols-2 gap-3">
+                  <button onclick="saveEssayGrade()" class="w-full bg-amber-600 text-white rounded-lg py-3 font-bold hover:bg-amber-700 transition">Simpan Penilaian</button>
+                  <button onclick="resetEssayGradeForm()" class="w-full bg-slate-200 text-slate-700 rounded-lg py-3 font-bold hover:bg-slate-300 transition">Reset Form</button>
+                </div>
+                <div class="text-xs text-slate-500 bg-amber-50 border border-amber-200 rounded-lg px-4 py-3">
+                  Setelah siswa mengumpulkan essay, datanya masuk ke panel ini. Mentor memberikan nilai dan komentar secara manual. Nilai essay baru muncul ke siswa setelah admin menyimpan penilaian.
+                </div>
+              </div>
+            </div>
+            <div class="bg-white rounded-2xl shadow-sm border border-slate-200 p-8">
+              <div class="flex items-center gap-2 mb-6">
+                <div class="w-10 h-10 rounded-lg bg-slate-100 flex items-center justify-center"><i data-lucide="file-stack" class="w-5 h-5 text-slate-600"></i></div>
+                <h3 class="text-xl font-bold text-slate-800">Kiriman Essay Masuk</h3>
+              </div>
+              <div id="adminEssaySubmissionList" class="space-y-3 max-h-[620px] overflow-y-auto"></div>
+            </div>
+          </div>
+        </div>
+
+        <div id="adminTab-tryout" class="admin-tab-panel hidden">
+          <div class="grid lg:grid-cols-2 gap-8">
+            <div class="bg-white rounded-2xl shadow-sm border border-slate-200 p-8">
+              <h3 class="text-xl font-bold text-slate-800 mb-2">Input Massal Soal Tryout</h3>
+              <p class="text-sm text-slate-500 mb-6">Paste banyak soal sekaligus. Sistem akan membentuk <strong>Tryout Paket 1, 2, 3...</strong> otomatis per 50 soal lengkap.</p>
+              <div class="space-y-4">
+                <div>
+                  <label class="block text-sm font-semibold text-slate-700 mb-2">Tingkat Kesulitan Default</label>
+                  <select id="adminTryoutLevel" class="w-full form-input rounded-lg px-4 py-3">
+                    <option value="">-- Pilih Level --</option>
+                    <option value="Mudah">Mudah</option>
+                    <option value="Menengah">Menengah</option>
+                    <option value="Sulit">Sulit</option>
+                  </select>
+                </div>
+                <div>
+                  <label class="block text-sm font-semibold text-slate-700 mb-2">Format per baris</label>
+                  <div class="text-xs text-slate-500 bg-slate-50 border border-slate-200 rounded-lg px-4 py-3">pertanyaan|opsiA|opsiB|opsiC|opsiD|jawabanBenar|pembahasan (pembahasan opsional)</div>
+                </div>
+                <div>
+                  <label class="block text-sm font-semibold text-slate-700 mb-2">Bulk Input Tryout</label>
+                  <textarea id="adminTryoutBulk" class="w-full form-input rounded-lg px-4 py-3 h-72 resize-y" placeholder="Paste 1 soal per baris, atau paste banyak soal sekaligus dari ChatGPT. Sistem akan mencoba memecah otomatis. Format: pertanyaan|opsiA|opsiB|opsiC|opsiD|jawabanBenar|pembahasan"></textarea>
+                </div>
+                <div id="tryoutBulkLiveStats" class="rounded-xl border border-purple-200 bg-purple-50 p-4 text-sm">
+                  <div class="font-semibold text-slate-800 mb-3">Preview parsing tryout</div>
+                  <div class="grid sm:grid-cols-4 gap-3">
+                    <div class="rounded-lg bg-white border border-slate-200 p-3">
+                      <div class="text-xs text-slate-500">Soal valid</div>
+                      <div id="tryoutBulkValid" class="text-2xl font-bold text-purple-700">0</div>
+                    </div>
+                    <div class="rounded-lg bg-white border border-slate-200 p-3">
+                      <div class="text-xs text-slate-500">Baris gagal</div>
+                      <div id="tryoutBulkSkipped" class="text-2xl font-bold text-red-600">0</div>
+                    </div>
+                    <div class="rounded-lg bg-white border border-slate-200 p-3">
+                      <div class="text-xs text-slate-500">Paket baru</div>
+                      <div id="tryoutBulkReadyNow" class="text-2xl font-bold text-green-600">0</div>
+                    </div>
+                    <div class="rounded-lg bg-white border border-slate-200 p-3">
+                      <div class="text-xs text-slate-500">Total paket setelah simpan</div>
+                      <div id="tryoutBulkReadyTotal" class="text-2xl font-bold text-blue-600">0</div>
+                    </div>
+                  </div>
+                  <div id="tryoutBulkHint" class="mt-3 text-xs text-slate-600">Paste soal untuk melihat preview hasil parsing otomatis.</div>
+                </div>
+                <p class="text-xs text-slate-500 mb-3">Tip: Anda boleh paste banyak soal sekaligus. Jika hasil copy dari chat menjadi satu paragraf panjang, sistem akan mencoba memecahnya otomatis.</p>
+                <button onclick="bulkAddTryout()" class="w-full bg-purple-600 text-white rounded-lg py-3 font-bold hover:bg-purple-700 transition">Proses Soal Tryout Massal</button>
+              </div>
+            </div>
+            <div class="bg-white rounded-2xl shadow-sm border border-slate-200 p-8">
+              <h3 class="text-xl font-bold text-slate-800 mb-2">Bank Soal Tryout</h3>
+              <p class="text-sm text-slate-500 mb-6">Paket tampil ke user hanya jika sudah genap 50 soal per tryout.</p>
+              <div id="adminTryoutList" class="space-y-4 max-h-[540px] overflow-y-auto"></div>
+            </div>
+          </div>
+        </div>
+
+        <div id="adminTab-adminpin" class="admin-tab-panel hidden">
+          <div class="grid lg:grid-cols-2 gap-8">
+            <div class="bg-white rounded-2xl shadow-sm border border-slate-200 p-8">
+              <div class="flex items-center gap-2 mb-6">
+                <div class="w-10 h-10 rounded-lg bg-amber-100 flex items-center justify-center"><i data-lucide="shield" class="w-5 h-5 text-amber-600"></i></div>
+                <h3 class="text-xl font-bold text-slate-800">Pengaturan Login Mentor</h3>
+              </div>
+              <div class="space-y-4">
+                <div>
+                  <label for="adminUsernameSetting" class="block text-sm font-semibold text-slate-700 mb-2">Username Mentor</label>
+                  <input id="adminUsernameSetting" type="text" class="w-full form-input rounded-lg px-4 py-3" placeholder="Masukkan username admin" />
+                </div>
+                <div>
+                  <label for="adminNewPinSetting" class="block text-sm font-semibold text-slate-700 mb-2">PIN Mentor Baru</label>
+                  <input id="adminNewPinSetting" maxlength="4" type="password" class="w-full form-input rounded-lg px-4 py-3 text-center tracking-widest" placeholder="4 digit" />
+                </div>
+                <div>
+                  <label for="adminConfirmPinSetting" class="block text-sm font-semibold text-slate-700 mb-2">Konfirmasi PIN Baru</label>
+                  <input id="adminConfirmPinSetting" maxlength="4" type="password" class="w-full form-input rounded-lg px-4 py-3 text-center tracking-widest" placeholder="Ulangi PIN baru" />
+                </div>
+                <div class="grid grid-cols-2 gap-3">
+                  <button onclick="saveMentorCredentials()" class="w-full bg-amber-600 text-white rounded-lg py-3 font-bold hover:bg-amber-700 transition">Simpan Pengaturan</button>
+                  <button onclick="resetMentorCredentialsForm()" class="w-full bg-slate-200 text-slate-700 rounded-lg py-3 font-bold hover:bg-slate-300 transition">Reset Form</button>
+                </div>
+                <div class="text-xs text-slate-500 bg-slate-50 border border-slate-200 rounded-lg px-4 py-3">
+                  Kredensial admin tidak lagi ditampilkan di halaman login. Simpan PIN baru dengan aman karena hanya admin yang dapat mengubahnya dari panel ini.
+                </div>
+              </div>
+            </div>
+            <div class="bg-white rounded-2xl shadow-sm border border-slate-200 p-8">
+              <div class="flex items-center gap-2 mb-6">
+                <div class="w-10 h-10 rounded-lg bg-slate-100 flex items-center justify-center"><i data-lucide="info" class="w-5 h-5 text-slate-600"></i></div>
+                <h3 class="text-xl font-bold text-slate-800">Ringkasan Akses Mentor</h3>
+              </div>
+              <div class="space-y-4 text-sm text-slate-700">
+                <div class="p-4 rounded-xl bg-slate-50 border border-slate-200">
+                  <div class="font-semibold text-slate-800 mb-1">Username aktif</div>
+                  <div id="adminCurrentUsernameInfo" class="text-slate-600">-</div>
+                </div>
+                <div class="p-4 rounded-xl bg-slate-50 border border-slate-200">
+                  <div class="font-semibold text-slate-800 mb-1">Status keamanan</div>
+                  <div class="text-slate-600">PIN admin disembunyikan dari halaman login dan hanya bisa diubah saat sudah login sebagai admin.</div>
+                </div>
+                <div class="p-4 rounded-xl bg-amber-50 border border-amber-200 text-amber-800">
+                  Setelah mengganti username atau PIN admin, gunakan kredensial baru pada login berikutnya.
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+    </main>
+  </div>
+
+  
+  <script>
+  let currentUser = { name: '', role: 'guest', studentId: null };
+  let deleteContext = null;
+  let currentQuiz = null;
+  let currentEssay = null;
+  let currentTryout = null;
+  let activeTimer = null;
+
+  const STORAGE_KEY = 'dashboardWawasanBulkAutoV4';
+  const ADMIN_DEFAULT = { username: 'admin', pin: '1234' };
+  let adminCredentials = { ...ADMIN_DEFAULT };
+  let loginRole = 'admin';
+  const LATIHAN_PER_PAKET = 10;
+  const ESSAY_PER_PAKET = 5;
+  const TRYOUT_PER_PAKET = 50;
+  const LATIHAN_DURATION = 5 * 60;
+  const ESSAY_DURATION = 10 * 60;
+  const TRYOUT_DURATION = 20 * 60;
+
+  const defaultData = {
+    students: [],
+    materi: [
+      {
+        id: 1,
+        namaMateri: 'Materi 1: Kamus Mentor Alfin',
+        deskripsi: 'Materi awal untuk gambaran dashboard. Tambahkan materi baru dari panel admin.'
+      }
+    ],
+    latihan: [],
+    essay: [],
+    tryout: [],
+    results: [],
+    adminSettings: { ...ADMIN_DEFAULT }
+  };
+
+  let dataStorage = clone(defaultData);
+
+  function clone(v) {
+    return JSON.parse(JSON.stringify(v));
+  }
+
+  function loadData() {
+    const raw = localStorage.getItem(STORAGE_KEY);
+    if (!raw) {
+      dataStorage = clone(defaultData);
+      return;
+    }
+    try {
+      dataStorage = JSON.parse(raw);
+    } catch {
+      dataStorage = clone(defaultData);
+    }
+    dataStorage.students ||= [];
+    dataStorage.materi ||= [];
+    dataStorage.latihan ||= [];
+    dataStorage.essay ||= [];
+    dataStorage.tryout ||= [];
+    dataStorage.results ||= [];
+    dataStorage.adminSettings ||= { ...ADMIN_DEFAULT };
+    if (!dataStorage.adminSettings.username) dataStorage.adminSettings.username = ADMIN_DEFAULT.username;
+    if (!dataStorage.adminSettings.pin) dataStorage.adminSettings.pin = ADMIN_DEFAULT.pin;
+    adminCredentials = { ...ADMIN_DEFAULT, ...dataStorage.adminSettings };
+    if (!dataStorage.materi.length) dataStorage.materi = clone(defaultData.materi);
+  }
+
+  function saveData() {
+    dataStorage.adminSettings = { ...adminCredentials };
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(dataStorage));
+  }
+
+  function nextId(collection) {
+    return collection.length ? Math.max(...collection.map(i => Number(i.id) || 0)) + 1 : Date.now();
+  }
+
+  
+function setLoginRole(role) {
+    loginRole = role === 'student' ? 'student' : 'admin';
+    const adminBtn = document.getElementById('roleMentorBtn');
+    const siswaBtn = document.getElementById('roleSiswaBtn');
+    const label = document.getElementById('loginNameLabel');
+    const hint = document.getElementById('loginHint');
+    const nameInput = document.getElementById('nameInput');
+    const err = document.getElementById('loginError');
+    err?.classList.add('hidden');
+    if (loginRole === 'admin') {
+      adminBtn.className = 'rounded-lg py-3 font-bold bg-slate-900 text-white';
+      siswaBtn.className = 'rounded-lg py-3 font-bold bg-slate-200 text-slate-700';
+      if (label) label.textContent = 'Username Mentor';
+      if (hint) hint.innerHTML = 'Masukkan username dan PIN admin. Kredensial admin tidak ditampilkan di halaman login.';
+      if (nameInput) nameInput.placeholder = 'Masukkan username admin';
+    } else {
+      adminBtn.className = 'rounded-lg py-3 font-bold bg-slate-200 text-slate-700';
+      siswaBtn.className = 'rounded-lg py-3 font-bold bg-slate-900 text-white';
+      if (label) label.textContent = 'Nama Siswa';
+      if (hint) hint.innerHTML = 'Siswa hanya bisa login jika sudah didaftarkan oleh admin.';
+      if (nameInput) nameInput.placeholder = 'Masukkan nama siswa';
+    }
+  }
+
+  function showLoginError(message) {
+    const err = document.getElementById('loginError');
+    if (!err) return;
+    err.textContent = message;
+    err.classList.remove('hidden');
+  }
+
+  function logout() {
+    clearTimer();
+    currentUser = { name: '', role: 'guest', studentId: null };
+    document.getElementById('loginModal')?.classList.remove('hidden');
+    document.getElementById('nameInput').value = '';
+    document.getElementById('pinInput').value = '';
+    document.getElementById('greet').textContent = 'Hi, User';
+    applyRoleUI();
+    showSec('home');
+  }
+
+  function applyRoleUI() {
+    const isMentor = currentUser.role === 'admin';
+    const studentIds = ['navLatihan','navTryout','navTranskrip','mNavLatihan','mNavTryout','mNavTranskrip'];
+    const adminIds = ['navMentor','navMonitoring','mNavMentor','mNavMonitoring'];
+    studentIds.forEach(id => document.getElementById(id)?.classList.toggle('hidden', isMentor));
+    adminIds.forEach(id => document.getElementById(id)?.classList.toggle('hidden', !isMentor));
+  }
+
+  function login() {
+    loadData();
+    const name = document.getElementById('nameInput').value.trim();
+    const pin = document.getElementById('pinInput').value.trim();
+    if (!name || !pin) return showLoginError('Nama/username dan PIN wajib diisi.');
+    if (loginRole === 'admin') {
+      if (name.toLowerCase() !== String(adminCredentials.username || '').toLowerCase() || pin !== String(adminCredentials.pin || '')) {
+        return showLoginError('Username admin atau PIN salah.');
+      }
+      currentUser = { name: 'Mentor', role: 'admin', studentId: null };
+    } else {
+      const student = dataStorage.students.find(s => s.name.toLowerCase() === name.toLowerCase() && s.pin === pin);
+      if (!student) return showLoginError('Nama siswa atau PIN tidak terdaftar.');
+      currentUser = { name: student.name, role: 'student', studentId: student.id };
+    }
+    document.getElementById('greet').textContent = `Hi, ${currentUser.name}`;
+    document.getElementById('loginError')?.classList.add('hidden');
+    document.getElementById('loginModal').classList.add('hidden');
+    applyRoleUI();
+    refreshAll();
+    showSec('home');
+  }
+
+  
+function showSec(id) {
+    const studentAllowed = ['home','latihan','tryout','transkrip','quiz','essay','tryoutQuiz'];
+    const adminAllowed = ['home','admin','monitoring'];
+    if (currentUser.role === 'student' && !studentAllowed.includes(id)) id = 'home';
+    if (currentUser.role === 'admin' && !adminAllowed.includes(id)) id = 'home';
+    document.querySelectorAll('.sec').forEach(s => s.classList.remove('active'));
+    document.getElementById(id)?.classList.add('active');
+    document.getElementById('mobileMenu')?.classList.add('hidden');
+    if (id === 'admin') {
+      switchMentorTab('siswa');
+      renderMentorPanels();
+    }
+    if (id === 'latihan') renderMateriLatihan();
+    if (id === 'tryout') renderTryoutUser();
+    if (id === 'monitoring') renderMonitoring();
+    if (id === 'transkrip') renderTranskrip();
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+    lucide.createIcons();
+  }
+
+  function toggleMenu() {
+    document.getElementById('mobileMenu')?.classList.toggle('hidden');
+  }
+
+  function switchMentorTab(tab) {
+    document.querySelectorAll('.admin-tab-panel').forEach(el => el.classList.add('hidden'));
+    document.getElementById(`adminTab-${tab}`)?.classList.remove('hidden');
+    document.querySelectorAll('.admin-tab-btn').forEach(btn => {
+      btn.classList.toggle('active', btn.dataset.tab === tab);
+      btn.classList.toggle('bg-slate-900', btn.dataset.tab === tab);
+      btn.classList.toggle('text-white', btn.dataset.tab === tab);
+      btn.classList.toggle('bg-slate-200', btn.dataset.tab !== tab);
+    });
+    if (tab === 'latihan' || tab === 'essay') updateMateriDropdowns();
+    if (tab === 'siswa') renderMentorStudentList();
+    if (tab === 'essaygrade') { renderMentorEssaySubmissionList(); resetEssayGradeForm(); }
+    if (tab === 'adminpin') resetMentorCredentialsForm();
+    lucide.createIcons();
+  }
+
+  function updateMateriDropdowns() {
+    ['adminLatihanMateri', 'adminEssayMateri'].forEach(id => {
+      const select = document.getElementById(id);
+      if (!select) return;
+      const current = select.value;
+      select.innerHTML = '<option value="">-- Pilih Materi --</option>';
+      dataStorage.materi.forEach(m => {
+        const option = document.createElement('option');
+        option.value = String(m.id);
+        option.textContent = m.namaMateri;
+        select.appendChild(option);
+      });
+      select.value = current;
+    });
+  }
+
+  function addMateri() {
+    const nama = document.getElementById('adminMateriNama').value.trim();
+    const deskripsi = document.getElementById('adminMateriDeskripsi').value.trim();
+    if (!nama) return showToast('Nama materi wajib diisi', 'error');
+    dataStorage.materi.push({
+      id: nextId(dataStorage.materi),
+      namaMateri: nama,
+      deskripsi: deskripsi || 'Deskripsi belum ditambahkan.'
+    });
+    document.getElementById('adminMateriNama').value = '';
+    document.getElementById('adminMateriDeskripsi').value = '';
+    saveData();
+    refreshAll();
+    switchMentorTab('materi');
+    showToast('Materi berhasil ditambahkan', 'success');
+  }
+
+  function parseBulkLines(text, minParts) {
+    // Bersihkan code fence dari hasil copy-paste ChatGPT
+    let cleaned = String(text || '')
+      .replace(/```(?:text|txt)?/gi, '')
+      .replace(/```/g, '')
+      .trim();
+
+    // Jika user mem-paste banyak soal menjadi satu paragraf panjang,
+    // sisipkan newline otomatis saat terdeteksi awal soal baru.
+    // Pola awal soal baru diasumsikan:
+    // Kalimat pertanyaan ...|opsiA|opsiB|opsiC|opsiD|A/B/C/D
+    cleaned = cleaned.replace(
+      /([.?!])\s+(?=[A-ZÀ-ÿ0-9(“"'][^|\n]{10,}?\.\.\.\|[^|]+\|[^|]+\|[^|]+\|[^|]+\|[A-D](?:\||$))/g,
+      '$1\n'
+    );
+
+    const lines = cleaned.split(/\r?\n/).map(v => v.trim()).filter(Boolean);
+    const rows = [];
+    const skipped = [];
+
+    lines.forEach((line, idx) => {
+      const parts = line.split('|').map(v => v.trim());
+      if (parts.length < minParts || parts.slice(0, minParts).some(v => !v)) {
+        skipped.push(idx + 1);
+        return;
+      }
+      rows.push(parts);
+    });
+
+    return { rows, skipped };
+  }
+
+  function bulkAddLatihan() {
+    const materiId = Number(document.getElementById('adminLatihanMateri').value);
+    const bulk = document.getElementById('adminLatihanBulk').value.trim();
+    if (!materiId || !bulk) return showToast('Pilih materi dan paste soal latihan terlebih dulu', 'error');
+
+    const { rows, skipped } = parseBulkLines(bulk, 6);
+    if (!rows.length) return showToast('Format bulk latihan tidak valid', 'error');
+
+    rows.forEach(parts => {
+      const [pertanyaan, A, B, C, D, jawabanBenar, ...rest] = parts;
+      dataStorage.latihan.push({
+        id: nextId(dataStorage.latihan),
+        materiId,
+        pertanyaan,
+        opsi: { A, B, C, D },
+        jawabanBenar: String(jawabanBenar).toUpperCase(),
+        pembahasan: rest.join(' | ')
+      });
+    });
+
+    document.getElementById('adminLatihanBulk').value = '';
+    saveData();
+    refreshAll();
+    switchMentorTab('latihan');
+    const total = dataStorage.latihan.filter(l => Number(l.materiId) === materiId).length;
+    showToast(`${rows.length} soal latihan diproses • Paket siap: ${Math.floor(total / LATIHAN_PER_PAKET)}${skipped.length ? ` • Baris dilewati: ${skipped.join(', ')}` : ''}`, 'success');
+  }
+
+  function bulkAddEssay() {
+    const materiId = Number(document.getElementById('adminEssayMateri').value);
+    const bulk = document.getElementById('adminEssayBulk').value.trim();
+    if (!materiId || !bulk) return showToast('Pilih materi dan paste soal essay terlebih dulu', 'error');
+
+    const { rows, skipped } = parseBulkLines(bulk, 2);
+    if (!rows.length) return showToast('Format bulk essay tidak valid', 'error');
+
+    rows.forEach(parts => {
+      const [pertanyaan, ...rest] = parts;
+      dataStorage.essay.push({
+        id: nextId(dataStorage.essay),
+        materiId,
+        pertanyaan,
+        kunciJawaban: rest.join(' | ')
+      });
+    });
+
+    document.getElementById('adminEssayBulk').value = '';
+    saveData();
+    refreshAll();
+    switchMentorTab('essay');
+    const total = dataStorage.essay.filter(e => Number(e.materiId) === materiId).length;
+    showToast(`${rows.length} soal essay diproses • Paket siap: ${Math.floor(total / ESSAY_PER_PAKET)}${skipped.length ? ` • Baris dilewati: ${skipped.join(', ')}` : ''}`, 'success');
+  }
+
+  function bulkAddTryout() {
+    const level = document.getElementById('adminTryoutLevel').value;
+    const bulk = document.getElementById('adminTryoutBulk').value.trim();
+    if (!level || !bulk) return showToast('Pilih level dan paste soal tryout terlebih dulu', 'error');
+
+    const { rows, skipped } = parseBulkLines(bulk, 6);
+    if (!rows.length) return showToast('Format bulk tryout tidak valid', 'error');
+
+    rows.forEach(parts => {
+      const [pertanyaan, A, B, C, D, jawabanBenar, ...rest] = parts;
+      dataStorage.tryout.push({
+        id: nextId(dataStorage.tryout),
+        level,
+        pertanyaan,
+        opsi: { A, B, C, D },
+        jawabanBenar: String(jawabanBenar).toUpperCase(),
+        pembahasan: rest.join(' | ')
+      });
+    });
+
+    document.getElementById('adminTryoutBulk').value = '';
+    saveData();
+    refreshAll();
+    switchMentorTab('tryout');
+    showToast(`${rows.length} soal tryout diproses • Paket siap: ${Math.floor(dataStorage.tryout.length / TRYOUT_PER_PAKET)}${skipped.length ? ` • Baris dilewati: ${skipped.join(', ')}` : ''}`, 'success');
+  }
+
+  function askDelete(type, id) {
+    deleteContext = { type, id };
+    const titleMap = {
+      student: 'Hapus siswa?',
+      materi: 'Hapus materi?',
+      latihan: 'Hapus soal latihan?',
+      essay: 'Hapus soal essay?',
+      tryout: 'Hapus soal tryout?'
+    };
+    const messageMap = {
+      student: 'Akun siswa akan dihapus dan seluruh rekap nilainya juga akan dihapus.',
+      materi: 'Semua bank soal latihan dan essay serta hasil pengerjaan materi ini ikut terhapus.',
+      latihan: 'Data soal latihan ini akan dihapus. Rekap hasil latihan pada materi terkait juga akan dibersihkan.',
+      essay: 'Data soal essay ini akan dihapus. Rekap hasil essay pada materi terkait juga akan dibersihkan.',
+      tryout: 'Data soal tryout ini akan dihapus. Rekap hasil tryout akan dibersihkan.'
+    };
+    document.getElementById('confirmTitle').textContent = titleMap[type];
+    document.getElementById('confirmMessage').textContent = messageMap[type];
+    document.getElementById('confirmationModal').classList.remove('hidden');
+    document.getElementById('confirmationModal').classList.add('flex');
+  }
+
+  function closeConfirmation() {
+    document.getElementById('confirmationModal').classList.add('hidden');
+    document.getElementById('confirmationModal').classList.remove('flex');
+    deleteContext = null;
+  }
+
+  function confirmAction() {
+    if (!deleteContext) return;
+    const { type, id } = deleteContext;
+    if (type === 'student') {
+      const student = dataStorage.students.find(s => Number(s.id) === Number(id));
+      dataStorage.students = dataStorage.students.filter(s => Number(s.id) !== Number(id));
+      if (student) dataStorage.results = dataStorage.results.filter(r => r.user !== student.name);
+      if (currentUser.role === 'student' && currentUser.studentId === id) logout();
+    } else if (type === 'materi') {
+      dataStorage.materi = dataStorage.materi.filter(m => Number(m.id) !== Number(id));
+      dataStorage.latihan = dataStorage.latihan.filter(l => Number(l.materiId) !== Number(id));
+      dataStorage.essay = dataStorage.essay.filter(e => Number(e.materiId) !== Number(id));
+      dataStorage.results = dataStorage.results.filter(r => Number(r.materiId) !== Number(id));
+    } else if (type === 'latihan') {
+      const soal = dataStorage.latihan.find(l => Number(l.id) === Number(id));
+      dataStorage.latihan = dataStorage.latihan.filter(l => Number(l.id) !== Number(id));
+      if (soal) dataStorage.results = dataStorage.results.filter(r => !(r.type === 'latihan' && Number(r.materiId) === Number(soal.materiId)));
+    } else if (type === 'essay') {
+      const soal = dataStorage.essay.find(e => Number(e.id) === Number(id));
+      dataStorage.essay = dataStorage.essay.filter(e => Number(e.id) !== Number(id));
+      if (soal) dataStorage.results = dataStorage.results.filter(r => !(r.type === 'essay' && Number(r.materiId) === Number(soal.materiId)));
+    } else if (type === 'tryout') {
+      dataStorage.tryout = dataStorage.tryout.filter(t => Number(t.id) !== Number(id));
+      dataStorage.results = dataStorage.results.filter(r => r.type !== 'tryout');
+    }
+    saveData();
+    closeConfirmation();
+    refreshAll();
+    showToast('Data berhasil dihapus', 'success');
+  }
+
+  function chunkIntoPackages(items, size, prefix) {
+    const ordered = [...items].sort((a, b) => Number(a.id) - Number(b.id));
+    const full = Math.floor(ordered.length / size);
+    return Array.from({ length: full }, (_, idx) => ({
+      title: `${prefix} ${idx + 1}`,
+      items: ordered.slice(idx * size, (idx + 1) * size)
+    }));
+  }
+
+  function normalizeOptions(opsi) {
+    if (Array.isArray(opsi)) {
+      return opsi.map((text, idx) => ({
+        letter: ['A', 'B', 'C', 'D'][idx] || String(idx + 1),
+        text: String(text ?? '')
+      }));
+    }
+    if (opsi && typeof opsi === 'object') {
+      return ['A', 'B', 'C', 'D']
+        .filter(letter => opsi[letter] !== undefined)
+        .map(letter => ({ letter, text: String(opsi[letter] ?? '') }));
+    }
+    return [];
+  }
+
+  function resultIdentifier(type, materiId, packageIndex) {
+    return `${type}|${Number(materiId || 0)}|${Number(packageIndex)}`;
+  }
+
+  function findResultForUser(user, type, materiId, packageIndex) {
+    const key = resultIdentifier(type, materiId, packageIndex);
+    return dataStorage.results.find(r => r.user === user && r.key === key) || null;
+  }
+
+  function saveResult(result) {
+    const idx = dataStorage.results.findIndex(r => r.user === result.user && r.key === result.key);
+    if (idx >= 0) dataStorage.results[idx] = result;
+    else dataStorage.results.push(result);
+    saveData();
+  }
+
+  function formatSeconds(sec) {
+    const safe = Math.max(0, Math.floor(sec || 0));
+    const m = String(Math.floor(safe / 60)).padStart(2, '0');
+    const s = String(safe % 60).padStart(2, '0');
+    return `${m}:${s}`;
+  }
+
+  function formatMinutesFromSeconds(sec) {
+    return `${(sec / 60).toFixed(1)} menit`;
+  }
+
+  function prettyDate(iso) {
+    const d = new Date(iso);
+    if (Number.isNaN(d.getTime())) return '-';
+    return d.toLocaleString('id-ID', { dateStyle: 'short', timeStyle: 'short' });
+  }
+
+  function timerBadge(type) {
+    if (type === 'latihan') return '5 menit';
+    if (type === 'essay') return '10 menit';
+    return '20 menit';
+  }
+
+  function getSessionMeta(type, durationSec, onExpire) {
+    clearTimer();
+    activeTimer = {
+      type,
+      durationSec,
+      startTs: Date.now(),
+      endTs: Date.now() + durationSec * 1000,
+      onExpire,
+      interval: null
+    };
+    activeTimer.interval = setInterval(updateTimerDisplay, 1000);
+    updateTimerDisplay();
+  }
+
+  function clearTimer() {
+    if (activeTimer?.interval) clearInterval(activeTimer.interval);
+    activeTimer = null;
+  }
+
+  function getElapsedSec() {
+    if (!activeTimer) return 0;
+    return Math.min(activeTimer.durationSec, Math.ceil((Date.now() - activeTimer.startTs) / 1000));
+  }
+
+  function updateTimerDisplay() {
+    if (!activeTimer) return;
+    const remain = Math.max(0, Math.ceil((activeTimer.endTs - Date.now()) / 1000));
+    const el = document.getElementById('timerDisplay');
+    if (el) {
+      el.textContent = formatSeconds(remain);
+      el.className = `px-4 py-2 rounded-lg font-bold ${remain <= 60 ? 'bg-red-100 text-red-700' : 'bg-slate-100 text-slate-700'}`;
+    }
+    if (remain <= 0) {
+      const expire = activeTimer.onExpire;
+      clearTimer();
+      expire?.();
+    }
+  }
+
+  function buildAttemptInfo(attempt, labelColor='blue') {
+    const colorMap = {
+      blue: 'bg-blue-50 border-blue-200 text-blue-700',
+      orange: 'bg-orange-50 border-orange-200 text-orange-700',
+      purple: 'bg-purple-50 border-purple-200 text-purple-700'
+    };
+    const isEssay = attempt?.type === 'essay';
+    const statusText = isEssay
+      ? (attempt.status === 'dinilai'
+          ? 'Sudah dinilai admin'
+          : attempt.status === 'waktu_habis_menunggu_penilaian'
+            ? 'Waktu habis • menunggu penilaian admin'
+            : 'Menunggu penilaian admin')
+      : (attempt.status === 'waktu_habis' ? 'Waktu habis (auto-submit)' : 'Selesai dikerjakan');
+    return `
+      <div class="mb-6 rounded-xl border ${colorMap[labelColor]} p-4">
+        <div class="flex flex-wrap items-center gap-3 mb-2">
+          <span class="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-white/80 text-xs font-bold">Sudah dikerjakan</span>
+          <span class="text-sm font-semibold">${statusText}</span>
+        </div>
+        <div class="grid sm:grid-cols-4 gap-3 text-sm">
+          <div><strong>Nilai:</strong> ${isEssay && (attempt.score === null || attempt.score === undefined) ? 'Menunggu admin' : (attempt.score ?? '-')}</div>
+          <div><strong>Dikerjakan:</strong> ${attempt.answeredCount}/${attempt.total}</div>
+          <div><strong>Waktu:</strong> ${formatSeconds(attempt.timeSpentSec)}</div>
+          <div><strong>Tanggal:</strong> ${prettyDate(attempt.submittedAt)}</div>
+        </div>
+        ${isEssay ? `<div class="mt-3 text-sm"><strong>Komentar admin:</strong> ${attempt.teacherComment ? escapeHtml(attempt.teacherComment) : '<span class="text-slate-600">Belum ada komentar. Menunggu penilaian admin.</span>'}</div>` : ''}
+      </div>`;
+  }
+
+  function renderMateriLatihan() {
+    const container = document.getElementById('materiContainer');
+    if (!dataStorage.materi.length) {
+      container.innerHTML = emptyState('Belum ada materi. Tambahkan dari panel admin.', 'inbox');
+      lucide.createIcons();
+      return;
+    }
+
+    container.innerHTML = dataStorage.materi.map((materi, idx) => {
+      const latihanItems = dataStorage.latihan.filter(l => Number(l.materiId) === Number(materi.id));
+      const essayItems = dataStorage.essay.filter(e => Number(e.materiId) === Number(materi.id));
+      const latihanPackages = chunkIntoPackages(latihanItems, LATIHAN_PER_PAKET, 'Latihan');
+      const essayPackages = chunkIntoPackages(essayItems, ESSAY_PER_PAKET, 'Essay');
+      const sisaLatihan = latihanItems.length % LATIHAN_PER_PAKET;
+      const sisaEssay = essayItems.length % ESSAY_PER_PAKET;
+
+      return `
+        <div class="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden">
+          <button onclick="toggleBox('materiBox-${idx}','materiIcon-${idx}')" class="w-full flex items-center justify-between text-left p-6 hover:bg-slate-50 transition">
+            <div>
+              <h3 class="text-2xl font-bold text-slate-800">${escapeHtml(materi.namaMateri)}</h3>
+              <p class="text-slate-500 text-sm mt-1">${latihanPackages.length} paket latihan • ${essayPackages.length} paket essay</p>
+            </div>
+            <i id="materiIcon-${idx}" data-lucide="chevron-down" class="w-6 h-6 text-slate-400 transition-transform"></i>
+          </button>
+          <div id="materiBox-${idx}" class="hidden border-t border-slate-200 p-6 bg-slate-50">
+            <p class="text-slate-700 mb-6">${escapeHtml(materi.deskripsi)}</p>
+            <div class="grid md:grid-cols-2 gap-4 mb-6">
+              <div class="rounded-xl bg-blue-50 border border-blue-200 p-4 text-sm text-slate-700">Bank latihan: <strong>${latihanItems.length}</strong> soal • Paket siap tampil: <strong>${latihanPackages.length}</strong>${sisaLatihan ? ` • Draft: ${sisaLatihan} soal` : ''}</div>
+              <div class="rounded-xl bg-orange-50 border border-orange-200 p-4 text-sm text-slate-700">Bank essay: <strong>${essayItems.length}</strong> soal • Paket siap tampil: <strong>${essayPackages.length}</strong>${sisaEssay ? ` • Draft: ${sisaEssay} soal` : ''}</div>
+            </div>
+
+            ${latihanPackages.length ? `
+              <h4 class="font-bold text-lg mb-4 text-slate-800">📋 Paket Latihan</h4>
+              <div class="item-grid mb-8">
+                ${latihanPackages.map((pkg,pkgIdx) => {
+                  const attempt = findResultForUser(currentUser.name, 'latihan', materi.id, pkgIdx);
+                  return `
+                    <button onclick="startLatihanPackage(${Number(materi.id)}, ${pkgIdx})" class="card bg-white p-4 rounded-xl shadow-sm border border-slate-200 text-left w-full hover:border-blue-400">
+                      <div class="flex items-start justify-between gap-3 mb-2">
+                        <div class="font-semibold text-slate-800">${escapeHtml(pkg.title)}</div>
+                        ${attempt ? '<span class="text-[10px] px-2 py-1 rounded-full bg-emerald-100 text-emerald-700 font-bold">Sudah dikerjakan</span>' : ''}
+                      </div>
+                      <div class="text-sm text-slate-500 mb-2">${pkg.items.length} soal • ${timerBadge('latihan')}</div>
+                      ${attempt ? `<div class="text-xs text-slate-600 mb-3">${attempt.status === 'dinilai' ? `Nilai ${attempt.score}% • Sudah dinilai` : 'Sudah dikirim • Menunggu penilaian admin'}</div>` : ''}
+                      <div class="inline-flex items-center gap-2 text-blue-600 text-sm font-semibold">
+                        <i data-lucide="${attempt ? 'eye' : 'play-circle'}" class="w-4 h-4"></i><span>${attempt ? 'Lihat & baca' : 'Kerjakan sekarang'}</span>
+                      </div>
+                    </button>`;
+                }).join('')}
+              </div>`
+              : `<div class="text-sm text-slate-500 mb-8">Belum ada 10 soal lengkap untuk membentuk paket latihan.</div>`}
+
+            ${essayPackages.length ? `
+              <h4 class="font-bold text-lg mb-4 text-slate-800">✍️ Paket Essay</h4>
+              <div class="item-grid">
+                ${essayPackages.map((pkg,pkgIdx) => {
+                  const attempt = findResultForUser(currentUser.name, 'essay', materi.id, pkgIdx);
+                  return `
+                    <button onclick="startEssayPackage(${Number(materi.id)}, ${pkgIdx})" class="card bg-white p-4 rounded-xl shadow-sm border border-slate-200 text-left w-full hover:border-orange-400">
+                      <div class="flex items-start justify-between gap-3 mb-2">
+                        <div class="font-semibold text-slate-800">${escapeHtml(pkg.title)}</div>
+                        ${attempt ? '<span class="text-[10px] px-2 py-1 rounded-full bg-emerald-100 text-emerald-700 font-bold">Sudah dikerjakan</span>' : ''}
+                      </div>
+                      <div class="text-sm text-slate-500 mb-2">${pkg.items.length} soal • ${timerBadge('essay')}</div>
+                      ${attempt ? `<div class="text-xs text-slate-600 mb-3">${attempt.status === 'dinilai' ? `Nilai ${attempt.score}% • Sudah dinilai` : 'Sudah dikirim • Menunggu penilaian admin'}</div>` : ''}
+                      <div class="inline-flex items-center gap-2 text-orange-600 text-sm font-semibold">
+                        <i data-lucide="${attempt ? 'eye' : 'file-pen-line'}" class="w-4 h-4"></i><span>${attempt ? 'Lihat & baca' : 'Buka essay'}</span>
+                      </div>
+                    </button>`;
+                }).join('')}
+              </div>`
+              : `<div class="text-sm text-slate-500">Belum ada 5 soal lengkap untuk membentuk paket essay.</div>`}
+          </div>
+        </div>`;
+    }).join('');
+    lucide.createIcons();
+  }
+
+  function renderTryoutUser() {
+    const grid = document.getElementById('tryoutGrid');
+    const packages = chunkIntoPackages(dataStorage.tryout, TRYOUT_PER_PAKET, 'Tryout Paket');
+    const sisa = dataStorage.tryout.length % TRYOUT_PER_PAKET;
+    if (!packages.length) {
+      grid.innerHTML = `
+        <div class="md:col-span-2 bg-white rounded-2xl border border-dashed border-slate-300 p-10 text-center text-slate-500">
+          <i data-lucide="inbox" class="w-12 h-12 mx-auto mb-3 opacity-50"></i>
+          <p>Belum ada paket tryout lengkap. Minimal ${TRYOUT_PER_PAKET} soal untuk menampilkan 1 paket tryout.</p>
+          ${dataStorage.tryout.length ? `<p class="text-sm mt-2">Draft saat ini: ${sisa} soal</p>` : ''}
+        </div>`;
+      lucide.createIcons();
+      return;
+    }
+
+    const colors = [
+      ['from-blue-500','to-blue-700','blue'],
+      ['from-purple-500','to-indigo-700','purple'],
+      ['from-pink-500','to-pink-700','pink'],
+      ['from-green-500','to-green-700','green']
+    ];
+
+    grid.innerHTML = packages.map((pkg, idx) => {
+      const [from, to, text] = colors[idx % colors.length];
+      const level = pkg.items[0]?.level || 'Menengah';
+      const attempt = findResultForUser(currentUser.name, 'tryout', 0, idx);
+      return `
+        <div class="card bg-gradient-to-br ${from} ${to} text-white rounded-2xl p-8 shadow-lg relative overflow-hidden">
+          <div class="relative z-10">
+            <div class="flex items-start justify-between gap-3 mb-3">
+              <h3 class="text-2xl font-bold">${escapeHtml(pkg.title)}</h3>
+              ${attempt ? '<span class="text-[10px] px-2 py-1 rounded-full bg-white/20 text-white font-bold">Sudah dikerjakan</span>' : ''}
+            </div>
+            <div class="space-y-2 mb-4 text-sm font-semibold">
+              <div class="flex items-center gap-2"><i data-lucide="zap" class="w-4 h-4"></i><span>${escapeHtml(level)}</span></div>
+              <div class="flex items-center gap-2"><i data-lucide="file-text" class="w-4 h-4"></i><span>${pkg.items.length} Soal</span></div>
+              <div class="flex items-center gap-2"><i data-lucide="clock" class="w-4 h-4"></i><span>${timerBadge('tryout')}</span></div>
+            </div>
+            ${attempt ? `<div class="bg-white/15 rounded-lg p-3 mb-4 text-sm">Nilai ${attempt.score} • ${attempt.status === 'waktu_habis' ? 'Waktu habis' : 'Selesai'} • ${prettyDate(attempt.submittedAt)}</div>` : `<div class="bg-white/15 rounded-lg p-4 mb-4 text-sm"><div class="font-semibold mb-2">Preview soal pertama:</div><div>${escapeHtml(pkg.items[0].pertanyaan)}</div></div>`}
+            <button onclick="startTryoutPackage(${idx})" class="bg-white text-${text}-700 px-6 py-3 rounded-lg font-bold hover:bg-slate-100 transition">${attempt ? 'Lihat & baca' : 'Mulai'}</button>
+          </div>
+        </div>`;
+    }).join('');
+    lucide.createIcons();
+  }
+
+  
+function essayStatusLabel(result) {
+    if (!result) return '-';
+    if (result.type !== 'essay') return result.status === 'waktu_habis' ? 'Waktu habis' : 'Selesai';
+    if (result.status === 'dinilai') return 'Sudah dinilai';
+    if (result.status === 'waktu_habis_menunggu_penilaian') return 'Waktu habis • menunggu penilaian';
+    return 'Menunggu penilaian admin';
+  }
+
+  function resetEssayGradeForm() {
+    const meta = document.getElementById('essayGradeMeta');
+    const idEl = document.getElementById('essayGradeResultId');
+    const scoreEl = document.getElementById('essayGradeScore');
+    const commentEl = document.getElementById('essayGradeComment');
+    if (idEl) idEl.value = '';
+    if (scoreEl) scoreEl.value = '';
+    if (commentEl) commentEl.value = '';
+    if (meta) meta.innerHTML = 'Pilih salah satu kiriman essay dari daftar di samping untuk mulai memberi nilai dan komentar.';
+  }
+
+  function openEssayGrade(resultId) {
+    const result = dataStorage.results.find(r => Number(r.id) === Number(resultId) && r.type === 'essay');
+    if (!result) return showToast('Data kiriman essay tidak ditemukan.', 'error');
+    document.getElementById('essayGradeResultId').value = String(result.id);
+    document.getElementById('essayGradeScore').value = result.score ?? '';
+    document.getElementById('essayGradeComment').value = result.teacherComment || '';
+    const materi = dataStorage.materi.find(m => Number(m.id) === Number(result.materiId));
+    const meta = document.getElementById('essayGradeMeta');
+    if (meta) {
+      meta.innerHTML = `
+        <div class="font-semibold text-slate-800 mb-2">${escapeHtml(result.user)} • ${escapeHtml(result.title)}</div>
+        <div class="text-slate-600">${escapeHtml(materi?.namaMateri || 'Materi')} • Dikirim ${prettyDate(result.submittedAt)} • ${result.answeredCount || 0}/${result.total || 0} jawaban terisi</div>
+        <div class="mt-3 rounded-lg bg-white border border-slate-200 p-3">
+          <div class="font-semibold text-slate-700 mb-2">Ringkasan jawaban siswa</div>
+          <div class="space-y-2 max-h-56 overflow-y-auto text-sm text-slate-700">
+            ${(result.answers || []).map((ans, idx) => `<div class="rounded-lg bg-slate-50 border border-slate-200 p-2"><strong>Nomor ${idx+1}:</strong> ${escapeHtml(ans || '-')}</div>`).join('') || '<div class="text-slate-500">Belum ada jawaban.</div>'}
+          </div>
+        </div>`;
+    }
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  }
+
+  function saveEssayGrade() {
+    const resultId = document.getElementById('essayGradeResultId')?.value;
+    const rawScore = document.getElementById('essayGradeScore')?.value.trim();
+    const comment = document.getElementById('essayGradeComment')?.value.trim() || '';
+    if (!resultId) return showToast('Pilih kiriman essay yang akan dinilai.', 'error');
+    if (rawScore === '') return showToast('Nilai essay wajib diisi.', 'error');
+    const score = Number(rawScore);
+    if (Number.isNaN(score) || score < 0 || score > 100) return showToast('Nilai essay harus berupa angka 0 sampai 100.', 'error');
+    const result = dataStorage.results.find(r => Number(r.id) === Number(resultId) && r.type === 'essay');
+    if (!result) return showToast('Data kiriman essay tidak ditemukan.', 'error');
+    result.score = Math.round(score);
+    result.teacherComment = comment;
+    result.gradedAt = new Date().toISOString();
+    result.gradedBy = currentUser.name || 'Mentor';
+    result.status = 'dinilai';
+    saveData();
+    renderMentorEssaySubmissionList();
+    renderMonitoring();
+    resetEssayGradeForm();
+    showToast('Penilaian essay berhasil disimpan.', 'success');
+  }
+
+  function renderMentorEssaySubmissionList() {
+    const el = document.getElementById('adminEssaySubmissionList');
+    if (!el) return;
+    const submissions = dataStorage.results
+      .filter(r => r.type === 'essay')
+      .sort((a,b) => new Date(b.submittedAt || 0) - new Date(a.submittedAt || 0));
+    if (!submissions.length) {
+      el.innerHTML = emptyState('Belum ada kiriman essay dari siswa.', 'inbox');
+      lucide.createIcons();
+      return;
+    }
+    el.innerHTML = submissions.map(result => {
+      const materi = dataStorage.materi.find(m => Number(m.id) === Number(result.materiId));
+      const graded = result.status === 'dinilai';
+      return `
+        <button onclick="openEssayGrade(${Number(result.id)})" class="w-full text-left p-4 rounded-xl border ${graded ? 'border-emerald-200 bg-emerald-50' : 'border-amber-200 bg-amber-50'} hover:shadow-sm transition">
+          <div class="flex items-start justify-between gap-3">
+            <div class="flex-1">
+              <div class="font-semibold text-slate-800">${escapeHtml(result.user)} • ${escapeHtml(result.title)}</div>
+              <div class="text-xs text-slate-600 mt-1">${escapeHtml(materi?.namaMateri || 'Materi')} • ${prettyDate(result.submittedAt)}</div>
+              <div class="text-xs mt-2 ${graded ? 'text-emerald-700' : 'text-amber-700'}">${graded ? `Nilai ${result.score}% • Sudah dinilai` : 'Menunggu penilaian admin'}</div>
+              ${result.teacherComment ? `<div class="text-xs text-slate-600 mt-2 line-clamp-2">Komentar: ${escapeHtml(result.teacherComment)}</div>` : ''}
+            </div>
+            <span class="text-[10px] px-2 py-1 rounded-full font-bold ${graded ? 'bg-emerald-100 text-emerald-700' : 'bg-amber-100 text-amber-700'}">${graded ? 'Dinilai' : 'Pending'}</span>
+          </div>
+        </button>`;
+    }).join('');
+    lucide.createIcons();
+  }
+
+
+function renderMentorPanels() {
+    renderMentorStudentList();
+    renderMentorMateriList();
+    renderMentorLatihanList();
+    renderMentorEssayList();
+    renderMentorEssaySubmissionList();
+    renderMentorTryoutList();
+    updateMateriDropdowns();
+    resetMentorCredentialsForm();
+    lucide.createIcons();
+  }
+
+  
+function resetMentorCredentialsForm() {
+    const usernameInput = document.getElementById('adminUsernameSetting');
+    const pinInput = document.getElementById('adminNewPinSetting');
+    const confirmInput = document.getElementById('adminConfirmPinSetting');
+    const info = document.getElementById('adminCurrentUsernameInfo');
+    if (usernameInput) usernameInput.value = adminCredentials.username || '';
+    if (pinInput) pinInput.value = '';
+    if (confirmInput) confirmInput.value = '';
+    if (info) info.textContent = adminCredentials.username || '-';
+  }
+
+  function saveMentorCredentials() {
+    const username = document.getElementById('adminUsernameSetting')?.value.trim();
+    const newPin = document.getElementById('adminNewPinSetting')?.value.trim();
+    const confirmPin = document.getElementById('adminConfirmPinSetting')?.value.trim();
+
+    if (!username) return showToast('Username admin wajib diisi.', 'error');
+    if (!newPin) return showToast('PIN admin baru wajib diisi.', 'error');
+    if (!/^\d{4}$/.test(newPin)) return showToast('PIN admin harus 4 digit angka.', 'error');
+    if (newPin !== confirmPin) return showToast('Konfirmasi PIN admin tidak cocok.', 'error');
+
+    adminCredentials = { username, pin: newPin };
+    saveData();
+    resetMentorCredentialsForm();
+    showToast('Pengaturan login admin berhasil diperbarui.', 'success');
+  }
+
+  
+function resetStudentForm() {
+    document.getElementById('adminStudentEditId').value = '';
+    document.getElementById('adminStudentName').value = '';
+    document.getElementById('adminStudentPin').value = '';
+  }
+
+  function addOrUpdateStudent() {
+    const editId = document.getElementById('adminStudentEditId').value;
+    const name = document.getElementById('adminStudentName').value.trim();
+    const pin = document.getElementById('adminStudentPin').value.trim();
+    if (!name || !pin) return showToast('Nama siswa dan PIN wajib diisi.', 'error');
+    if (!/^\d{4}$/.test(pin)) return showToast('PIN siswa harus 4 digit angka.', 'error');
+    const existsByName = dataStorage.students.find(s => s.name.toLowerCase() === name.toLowerCase() && String(s.id) !== String(editId || ''));
+    if (existsByName) return showToast('Nama siswa sudah terdaftar. Gunakan nama lain atau edit data lama.', 'error');
+
+    if (editId) {
+      const student = dataStorage.students.find(s => String(s.id) === String(editId));
+      if (!student) return showToast('Data siswa tidak ditemukan.', 'error');
+      const oldName = student.name;
+      student.name = name;
+      student.pin = pin;
+      dataStorage.results = dataStorage.results.map(r => r.user === oldName ? ({...r, user: name}) : r);
+      showToast('Data siswa berhasil diperbarui.', 'success');
+    } else {
+      dataStorage.students.push({ id: nextId(dataStorage.students), name, pin });
+      showToast('Siswa berhasil ditambahkan.', 'success');
+    }
+    saveData();
+    resetStudentForm();
+    renderMentorStudentList();
+    renderMonitoring();
+  }
+
+  function editStudent(id) {
+    const student = dataStorage.students.find(s => Number(s.id) === Number(id));
+    if (!student) return;
+    document.getElementById('adminStudentEditId').value = String(student.id);
+    document.getElementById('adminStudentName').value = student.name;
+    document.getElementById('adminStudentPin').value = student.pin;
+    switchMentorTab('siswa');
+    window.scrollTo({top: 0, behavior: 'smooth'});
+  }
+
+  function deleteStudent(id) {
+    askDelete('student', id);
+  }
+
+  function renderMentorStudentList() {
+    const el = document.getElementById('adminStudentList');
+    if (!el) return;
+    if (!dataStorage.students.length) {
+      el.innerHTML = emptyState('Belum ada siswa terdaftar', 'users');
+      lucide.createIcons();
+      return;
+    }
+    el.innerHTML = dataStorage.students.map(student => {
+      const results = dataStorage.results.filter(r => r.user === student.name && r.score !== null && r.score !== undefined);
+      const pendingEssay = dataStorage.results.filter(r => r.user === student.name && r.type === 'essay' && (r.score === null || r.score === undefined)).length;
+      const avg = results.length ? Math.round(results.reduce((s,r) => s + Number(r.score || 0), 0) / results.length) : 0;
+      return `
+        <div class="p-4 rounded-xl border border-slate-200 bg-slate-50">
+          <div class="flex items-start justify-between gap-3">
+            <div class="flex-1">
+              <div class="font-semibold text-slate-800">${escapeHtml(student.name)}</div>
+              <div class="text-xs text-slate-500 mt-1">PIN: ${escapeHtml(student.pin)} • ${results.length} hasil dinilai • Rata-rata ${avg}%${pendingEssay ? ` • ${pendingEssay} essay pending` : ''}</div>
+            </div>
+            <div class="flex gap-2">
+              <button onclick="editStudent(${student.id})" class="p-2 text-blue-600 hover:bg-blue-50 rounded-lg"><i data-lucide="pencil" class="w-5 h-5"></i></button>
+              <button onclick="deleteStudent(${student.id})" class="p-2 text-red-600 hover:bg-red-50 rounded-lg"><i data-lucide="trash-2" class="w-5 h-5"></i></button>
+            </div>
+          </div>
+        </div>`;
+    }).join('');
+    lucide.createIcons();
+  }
+
+function renderMentorMateriList() {
+    const el = document.getElementById('adminMateriList');
+    if (!dataStorage.materi.length) {
+      el.innerHTML = emptyState('Belum ada materi', 'inbox');
+      return;
+    }
+    el.innerHTML = dataStorage.materi.map(m => `
+      <div class="flex items-start justify-between gap-3 p-4 rounded-lg border border-slate-200 bg-slate-50">
+        <div class="flex-1">
+          <div class="font-semibold text-slate-800">${escapeHtml(m.namaMateri)}</div>
+          <div class="text-xs text-slate-500 mt-1">${escapeHtml(m.deskripsi)}</div>
+        </div>
+        <button onclick="askDelete('materi', ${m.id})" class="delete-btn p-2 text-red-600 hover:bg-red-50 rounded-lg"><i data-lucide="trash-2" class="w-5 h-5"></i></button>
+      </div>`).join('');
+  }
+
+  function renderMentorLatihanList() {
+    const el = document.getElementById('adminLatihanList');
+    if (!dataStorage.latihan.length) {
+      el.innerHTML = emptyState('Belum ada bank soal latihan', 'inbox');
+      return;
+    }
+    const html = dataStorage.materi.map(m => {
+      const items = dataStorage.latihan.filter(l => Number(l.materiId) === Number(m.id)).sort((a,b) => Number(a.id) - Number(b.id));
+      if (!items.length) return '';
+      const paket = Math.floor(items.length / LATIHAN_PER_PAKET);
+      const sisa = items.length % LATIHAN_PER_PAKET;
+      return `
+        <div class="p-4 rounded-lg border border-slate-200 bg-slate-50">
+          <div class="font-semibold text-slate-800">${escapeHtml(m.namaMateri)}</div>
+          <div class="text-xs text-slate-500 mt-1 mb-3">${items.length} soal mentah • ${paket} paket siap tampil${sisa ? ` • draft ${sisa} soal` : ''}</div>
+          <div class="space-y-2">
+            ${items.slice(-5).reverse().map(item => `
+              <div class="flex items-start justify-between gap-3 p-3 bg-white rounded-lg border border-slate-200">
+                <div class="text-sm text-slate-600 flex-1">${escapeHtml(item.pertanyaan)}</div>
+                <button onclick="askDelete('latihan', ${item.id})" class="delete-btn p-2 text-red-600 hover:bg-red-50 rounded-lg"><i data-lucide="trash-2" class="w-5 h-5"></i></button>
+              </div>`).join('')}
+          </div>
+        </div>`;
+    }).join('');
+    el.innerHTML = html || emptyState('Belum ada bank soal latihan', 'inbox');
+  }
+
+  function renderMentorEssayList() {
+    const el = document.getElementById('adminEssayList');
+    if (!dataStorage.essay.length) {
+      el.innerHTML = emptyState('Belum ada bank soal essay', 'inbox');
+      return;
+    }
+    const html = dataStorage.materi.map(m => {
+      const items = dataStorage.essay.filter(e => Number(e.materiId) === Number(m.id)).sort((a,b) => Number(a.id) - Number(b.id));
+      if (!items.length) return '';
+      const paket = Math.floor(items.length / ESSAY_PER_PAKET);
+      const sisa = items.length % ESSAY_PER_PAKET;
+      return `
+        <div class="p-4 rounded-lg border border-slate-200 bg-slate-50">
+          <div class="font-semibold text-slate-800">${escapeHtml(m.namaMateri)}</div>
+          <div class="text-xs text-slate-500 mt-1 mb-3">${items.length} soal mentah • ${paket} paket siap tampil${sisa ? ` • draft ${sisa} soal` : ''}</div>
+          <div class="space-y-2">
+            ${items.slice(-5).reverse().map(item => `
+              <div class="flex items-start justify-between gap-3 p-3 bg-white rounded-lg border border-slate-200">
+                <div class="text-sm text-slate-600 flex-1">${escapeHtml(item.pertanyaan)}</div>
+                <button onclick="askDelete('essay', ${item.id})" class="delete-btn p-2 text-red-600 hover:bg-red-50 rounded-lg"><i data-lucide="trash-2" class="w-5 h-5"></i></button>
+              </div>`).join('')}
+          </div>
+        </div>`;
+    }).join('');
+    el.innerHTML = html || emptyState('Belum ada bank soal essay', 'inbox');
+  }
+
+  function renderMentorTryoutList() {
+    const el = document.getElementById('adminTryoutList');
+    if (!dataStorage.tryout.length) {
+      el.innerHTML = emptyState('Belum ada bank soal tryout', 'inbox');
+      return;
+    }
+    const paket = Math.floor(dataStorage.tryout.length / TRYOUT_PER_PAKET);
+    const sisa = dataStorage.tryout.length % TRYOUT_PER_PAKET;
+    el.innerHTML = `
+      <div class="p-4 rounded-lg border border-slate-200 bg-slate-50 mb-4">
+        <div class="font-semibold text-slate-800">Ringkasan Tryout</div>
+        <div class="text-xs text-slate-500 mt-1">${dataStorage.tryout.length} soal mentah • ${paket} paket siap tampil${sisa ? ` • draft ${sisa} soal` : ''}</div>
+      </div>
+      <div class="space-y-2">
+        ${dataStorage.tryout.slice(-10).reverse().map(item => `
+          <div class="flex items-start justify-between gap-3 p-3 bg-white rounded-lg border border-slate-200">
+            <div class="flex-1">
+              <div class="text-xs text-purple-600 mb-1">${escapeHtml(item.level || 'Menengah')}</div>
+              <div class="text-sm text-slate-600">${escapeHtml(item.pertanyaan)}</div>
+            </div>
+            <button onclick="askDelete('tryout', ${item.id})" class="delete-btn p-2 text-red-600 hover:bg-red-50 rounded-lg"><i data-lucide="trash-2" class="w-4 h-4"></i></button>
+          </div>`).join('')}
+      </div>`;
+  }
+
+  function getResultsForCurrentUser() {
+    return dataStorage.results.filter(r => r.user === currentUser.name);
+  }
+
+  function aggregateMaterialResults(results) {
+    return dataStorage.materi.map(m => {
+      const items = results.filter(r => Number(r.materiId) === Number(m.id) && r.score !== null && r.score !== undefined);
+      const avg = items.length ? Math.round(items.reduce((s, r) => s + Number(r.score || 0), 0) / items.length) : null;
+      const timeSpentSec = items.reduce((s, r) => s + Number(r.timeSpentSec || 0), 0);
+      return {
+        materi: m,
+        attempts: items.length,
+        avgScore: avg,
+        timeSpentSec
+      };
+    }).filter(x => x.attempts > 0);
+  }
+
+  
+function renderTranskrip() {
+    const userResults = getResultsForCurrentUser();
+    const scored = userResults.filter(r => r.score !== null && r.score !== undefined);
+    const avg = scored.length ? Math.round(scored.reduce((s, r) => s + Number(r.score || 0), 0) / scored.length) : 0;
+    const perMateriUser = aggregateMaterialResults(userResults);
+    const mastered = perMateriUser.filter(x => (x.avgScore ?? 0) >= 80).length;
+    const need = perMateriUser.filter(x => (x.avgScore ?? 0) < 70).length;
+    document.getElementById('trTotalPaket').textContent = userResults.length;
+    document.getElementById('trAvg').textContent = `${avg}%`;
+    document.getElementById('trMastered').textContent = mastered;
+    document.getElementById('trNeed').textContent = need;
+    const insights = document.getElementById('transcriptInsights');
+    if (!userResults.length) {
+      const pendingEssay = userResults.filter(r => r.type === 'essay' && (r.score === null || r.score === undefined)).length;
+      insights.innerHTML = pendingEssay ? `<div class="text-slate-700">Anda memiliki <strong>${pendingEssay}</strong> paket essay yang sudah dikirim dan sedang menunggu penilaian admin.</div>` : '<div class="text-slate-600">Belum ada hasil pengerjaan. Kerjakan latihan atau tryout agar transkrip nilai terbentuk otomatis.</div>';
+    } else {
+      const best = [...perMateriUser].sort((a,b) => (b.avgScore ?? -1) - (a.avgScore ?? -1))[0];
+      const weak = [...perMateriUser].sort((a,b) => (a.avgScore ?? 999) - (b.avgScore ?? 999))[0];
+      insights.innerHTML = `
+        <div class="flex items-start gap-3">
+          <div class="w-12 h-12 rounded-xl bg-blue-100 flex items-center justify-center"><i data-lucide="graduation-cap" class="w-6 h-6 text-blue-600"></i></div>
+          <div>
+            <div class="font-bold text-slate-800 mb-1">Ringkasan belajar ${escapeHtml(currentUser.name)}</div>
+            <div class="text-slate-700 leading-relaxed">
+              Anda telah menyelesaikan <strong>${userResults.length}</strong> paket dengan rata-rata <strong>${avg}%</strong>.
+              ${best ? ` Materi paling dikuasai saat ini adalah <strong>${escapeHtml(best.materi.namaMateri)}</strong> (${best.avgScore}%).` : ''}
+              ${weak ? ` Materi yang paling perlu diulang adalah <strong>${escapeHtml(weak.materi.namaMateri)}</strong> (${weak.avgScore}%).` : ''}
+            </div>
+          </div>
+        </div>`;
+    }
+    document.getElementById('transcriptMaterialList').innerHTML = perMateriUser.length
+      ? perMateriUser.map(item => {
+          const status = item.avgScore >= 80 ? 'Dikuasai' : item.avgScore >= 70 ? 'Cukup' : 'Perlu belajar lagi';
+          const tone = item.avgScore >= 80 ? 'emerald' : item.avgScore >= 70 ? 'blue' : 'amber';
+          return `<div class="rounded-xl border border-${tone}-200 bg-${tone}-50 p-4">
+            <div class="flex items-center justify-between gap-4">
+              <div>
+                <div class="font-semibold text-slate-800">${escapeHtml(item.materi.namaMateri)}</div>
+                <div class="text-slate-600 mt-1">${item.attempts} paket • ${status}</div>
+              </div>
+              <div class="text-right">
+                <div class="font-bold text-${tone}-700">${item.avgScore}%</div>
+                <div class="text-xs text-slate-500">rata-rata</div>
+              </div>
+            </div>
+          </div>`;
+        }).join('')
+      : '<div class="text-slate-500">Belum ada materi yang masuk transkrip.</div>';
+
+    const sorted = [...userResults].sort((a,b) => new Date(b.submittedAt) - new Date(a.submittedAt));
+    document.getElementById('transcriptResultList').innerHTML = sorted.length
+      ? sorted.map(r => `
+          <div class="rounded-xl border border-slate-200 bg-white p-4">
+            <div class="flex items-start justify-between gap-4">
+              <div>
+                <div class="font-semibold text-slate-800">${escapeHtml(r.title)}</div>
+                <div class="text-slate-600 mt-1">${r.type === 'essay' && (r.score === null || r.score === undefined) ? 'Menunggu penilaian admin' : `${r.score ?? '-'}%`} • ${essayStatusLabel(r)} • ${prettyDate(r.submittedAt)}</div>${r.type === 'essay' && r.teacherComment ? `<div class="text-slate-500 mt-2 text-xs">Komentar admin: ${escapeHtml(r.teacherComment)}</div>` : ''}
+              </div>
+              <div class="text-xs px-2 py-1 rounded-full ${r.type === 'latihan' ? 'bg-blue-100 text-blue-700' : r.type === 'essay' ? 'bg-orange-100 text-orange-700' : 'bg-purple-100 text-purple-700'}">${r.type}</div>
+            </div>
+          </div>`).join('')
+      : '<div class="text-slate-500">Belum ada paket yang dikerjakan.</div>';
+    lucide.createIcons();
+  }
+
+  function renderMonitoring() {
+    const allResults = dataStorage.results.filter(r => r.score !== null && r.score !== undefined);
+    const pendingEssayCount = dataStorage.results.filter(r => r.type === 'essay' && (r.score === null || r.score === undefined)).length;
+    const avg = allResults.length ? Math.round(allResults.reduce((s, r) => s + Number(r.score || 0), 0) / allResults.length) : 0;
+    const perMateriAll = aggregateMaterialResults(allResults);
+    const mastered = perMateriAll.filter(x => (x.avgScore ?? 0) >= 80).length;
+    const need = perMateriAll.filter(x => (x.avgScore ?? 0) < 70).length;
+
+    document.getElementById('monTotalPaket').textContent = allResults.length;
+    document.getElementById('monAvg').textContent = `${avg}%`;
+    document.getElementById('monMastered').textContent = mastered;
+    document.getElementById('monNeed').textContent = need;
+
+    const insights = document.getElementById('monitorInsights');
+    if (!allResults.length) {
+      insights.innerHTML = '<div class="text-slate-600">Belum ada hasil siswa yang masuk ke rekapitulasi admin.</div>';
+    } else {
+      const studentCount = dataStorage.students.length;
+      const best = [...perMateriAll].sort((a,b) => (b.avgScore ?? -1) - (a.avgScore ?? -1))[0];
+      const weak = [...perMateriAll].sort((a,b) => (a.avgScore ?? 999) - (b.avgScore ?? 999))[0];
+      insights.innerHTML = `
+        <div class="flex items-start gap-3">
+          <div class="w-12 h-12 rounded-xl bg-blue-100 flex items-center justify-center"><i data-lucide="layout-dashboard" class="w-6 h-6 text-blue-600"></i></div>
+          <div>
+            <div class="font-bold text-slate-800 mb-1">Ringkasan monitoring admin</div>
+            <div class="text-slate-700 leading-relaxed">
+              Saat ini ada <strong>${studentCount}</strong> siswa terdaftar dengan <strong>${allResults.length}</strong> hasil paket yang sudah dinilai dan rata-rata umum <strong>${avg}%</strong>. ${pendingEssayCount ? `Terdapat <strong>${pendingEssayCount}</strong> kiriman essay yang masih menunggu penilaian admin.` : ''}
+              ${best ? ` Materi paling kuat secara umum adalah <strong>${escapeHtml(best.materi.namaMateri)}</strong> (${best.avgScore}%).` : ''}
+              ${weak ? ` Materi yang paling perlu diperkuat adalah <strong>${escapeHtml(weak.materi.namaMateri)}</strong> (${weak.avgScore}%).` : ''}
+            </div>
+          </div>
+        </div>`;
+    }
+    lucide.createIcons();
+
+    document.getElementById('monitorStrongList').innerHTML = perMateriAll.length
+      ? [...perMateriAll].sort((a,b) => (b.avgScore ?? -1) - (a.avgScore ?? -1)).slice(0,5).map(item => `
+          <div class="rounded-xl border border-emerald-200 bg-emerald-50 p-4">
+            <div class="flex items-center justify-between gap-4">
+              <div>
+                <div class="font-semibold text-slate-800">${escapeHtml(item.materi.namaMateri)}</div>
+                <div class="text-slate-600 mt-1">Rata-rata ${item.avgScore}% • ${item.attempts} hasil</div>
+              </div>
+              <div class="text-emerald-700 font-bold">${item.avgScore}%</div>
+            </div>
+          </div>`).join('')
+      : '<div class="text-slate-500">Belum ada hasil penilaian.</div>';
+
+    document.getElementById('monitorWeakList').innerHTML = perMateriAll.length
+      ? [...perMateriAll].sort((a,b) => (a.avgScore ?? 999) - (b.avgScore ?? 999)).slice(0,5).map(item => `
+          <div class="rounded-xl border border-amber-200 bg-amber-50 p-4">
+            <div class="flex items-center justify-between gap-4">
+              <div>
+                <div class="font-semibold text-slate-800">${escapeHtml(item.materi.namaMateri)}</div>
+                <div class="text-slate-600 mt-1">Rata-rata ${item.avgScore}% • ${item.attempts} hasil</div>
+              </div>
+              <div class="text-amber-700 font-bold">${item.avgScore}%</div>
+            </div>
+          </div>`).join('')
+      : '<div class="text-slate-500">Belum ada hasil penilaian.</div>';
+
+    const studentMap = {};
+    dataStorage.results.forEach(r => {
+      studentMap[r.user] ||= { user: r.user, count: 0, totalScore: 0, scoredCount: 0, time: 0 };
+      studentMap[r.user].count++;
+      studentMap[r.user].time += Number(r.timeSpentSec || 0);
+      if (r.score !== null && r.score !== undefined) {
+        studentMap[r.user].totalScore += Number(r.score || 0);
+        studentMap[r.user].scoredCount++;
+      }
+    });
+    const studentRows = Object.values(studentMap).sort((a,b) => ((b.scoredCount ? b.totalScore / b.scoredCount : 0) - (a.scoredCount ? a.totalScore / a.scoredCount : 0)));
+    document.getElementById('monitorStudentList').innerHTML = studentRows.length
+      ? studentRows.map(s => {
+          const sAvg = s.scoredCount ? Math.round(s.totalScore / s.scoredCount) : 0;
+          return `<div class="rounded-xl border border-slate-200 bg-slate-50 p-4">
+            <div class="flex items-center justify-between gap-4">
+              <div>
+                <div class="font-semibold text-slate-800">${escapeHtml(s.user)}</div>
+                <div class="text-slate-600 mt-1">${s.count} paket • ${formatMinutesFromSeconds(s.time)}</div>
+              </div>
+              <div class="text-right">
+                <div class="font-bold text-slate-800">${sAvg}%</div>
+                <div class="text-xs text-slate-500">rata-rata</div>
+              </div>
+            </div>
+          </div>`;
+        }).join('')
+      : '<div class="text-slate-500">Belum ada rekap siswa.</div>';
+
+    const recent = [...dataStorage.results].sort((a,b) => new Date(b.submittedAt) - new Date(a.submittedAt)).slice(0,10);
+    document.getElementById('monitorRecentList').innerHTML = recent.length
+      ? recent.map(r => `
+          <div class="rounded-xl border border-slate-200 bg-white p-4">
+            <div class="flex items-start justify-between gap-4">
+              <div>
+                <div class="font-semibold text-slate-800">${escapeHtml(r.user)} • ${escapeHtml(r.title)}</div>
+                <div class="text-slate-600 mt-1">${r.type === 'essay' && (r.score === null || r.score === undefined) ? 'Menunggu penilaian admin' : `${r.score ?? '-'}%`} • ${essayStatusLabel(r)} • ${prettyDate(r.submittedAt)}</div>${r.type === 'essay' && r.teacherComment ? `<div class="text-slate-500 mt-2 text-xs">Komentar admin: ${escapeHtml(r.teacherComment)}</div>` : ''}
+              </div>
+              <div class="text-xs px-2 py-1 rounded-full ${r.type === 'latihan' ? 'bg-blue-100 text-blue-700' : r.type === 'essay' ? 'bg-orange-100 text-orange-700' : 'bg-purple-100 text-purple-700'}">${r.type}</div>
+            </div>
+          </div>`).join('')
+      : '<div class="text-slate-500">Belum ada aktivitas yang masuk rekapitulasi.</div>';
+  }
+
+function refreshStats() {
+    document.getElementById('statMateri').textContent = dataStorage.materi.length;
+    document.getElementById('statLatihan').textContent = dataStorage.latihan.length;
+    document.getElementById('statEssay').textContent = dataStorage.essay.length;
+    document.getElementById('statTryout').textContent = chunkIntoPackages(dataStorage.tryout, TRYOUT_PER_PAKET, 'Tryout Paket').length;
+  }
+
+  function refreshAll() {
+    if (currentUser.role === 'admin') {
+      renderMentorPanels();
+      renderMonitoring();
+    } else if (currentUser.role === 'student') {
+      renderMateriLatihan();
+      renderTryoutUser();
+      renderTranskrip();
+    }
+    refreshStats();
+    applyRoleUI();
+    lucide.createIcons();
+  }
+
+  function toggleBox(boxId, iconId) {
+    const box = document.getElementById(boxId);
+    const icon = document.getElementById(iconId);
+    if (!box || !icon) return;
+    box.classList.toggle('hidden');
+    icon.style.transform = box.classList.contains('hidden') ? 'rotate(0deg)' : 'rotate(180deg)';
+  }
+
+  function emptyState(text, icon) {
+    return `
+      <div class="text-center py-8 text-slate-500">
+        <i data-lucide="${icon}" class="w-10 h-10 mx-auto mb-2 opacity-50"></i>
+        <p class="text-sm">${text}</p>
+      </div>`;
+  }
+
+  function showToast(message, type = 'info') {
+    const toast = document.getElementById('toast');
+    const styleMap = {
+      success: ['bg-green-600', 'check-circle'],
+      error: ['bg-red-600', 'alert-circle'],
+      info: ['bg-blue-600', 'info']
+    };
+    const [bg, icon] = styleMap[type] || styleMap.info;
+    toast.innerHTML = `<div class="${bg} text-white rounded-lg shadow-lg p-4 flex items-center gap-3 max-w-sm"><i data-lucide="${icon}" class="w-5 h-5 flex-shrink-0"></i><p class="font-semibold text-sm">${escapeHtml(message)}</p></div>`;
+    toast.classList.remove('hidden');
+    lucide.createIcons();
+    setTimeout(() => toast.classList.add('hidden'), 2600);
+  }
+
+  function escapeHtml(str) {
+    return String(str ?? '')
+      .replaceAll('&', '&amp;')
+      .replaceAll('<', '&lt;')
+      .replaceAll('>', '&gt;')
+      .replaceAll('"', '&quot;')
+      .replaceAll("'", '&#039;');
+  }
+
+  function getLatihanPackage(materiId, packageIndex) {
+    const items = dataStorage.latihan
+      .filter(l => Number(l.materiId) === Number(materiId))
+      .sort((a,b) => Number(a.id) - Number(b.id));
+    return chunkIntoPackages(items, LATIHAN_PER_PAKET, 'Latihan')[packageIndex] || null;
+  }
+
+  function getEssayPackage(materiId, packageIndex) {
+    const items = dataStorage.essay
+      .filter(e => Number(e.materiId) === Number(materiId))
+      .sort((a,b) => Number(a.id) - Number(b.id));
+    return chunkIntoPackages(items, ESSAY_PER_PAKET, 'Essay')[packageIndex] || null;
+  }
+
+  function getTryoutPackage(packageIndex) {
+    return chunkIntoPackages(dataStorage.tryout, TRYOUT_PER_PAKET, 'Tryout Paket')[packageIndex] || null;
+  }
+
+  function startLatihanPackage(materiId, packageIndex) {
+    const pkg = getLatihanPackage(materiId, packageIndex);
+    const materi = dataStorage.materi.find(m => Number(m.id) === Number(materiId));
+    if (!pkg) {
+      showToast('Paket latihan tidak ditemukan', 'error');
+      return;
+    }
+    const attempt = findResultForUser(currentUser.name, 'latihan', materiId, packageIndex);
+    currentQuiz = { materiId, packageIndex, pkg, materiName: materi?.namaMateri || 'Materi', durationSec: LATIHAN_DURATION };
+    if (attempt) {
+      clearTimer();
+      renderQuiz(pkg, currentQuiz.materiName, attempt);
+      showSec('quiz');
+      showToast('Paket ini sudah dikerjakan. Dibuka dalam mode baca.', 'info');
+      return;
+    }
+    renderQuiz(pkg, currentQuiz.materiName, null);
+    getSessionMeta('latihan', LATIHAN_DURATION, () => submitQuiz(true));
+    showSec('quiz');
+  }
+
+  function renderQuiz(pkg, materiName, attempt = null) {
+    const readOnly = !!attempt;
+    const el = document.getElementById('quizContainer');
+    el.innerHTML = `
+      <div class="bg-white rounded-2xl shadow-sm border border-slate-200 p-6 sm:p-8">
+        <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-8">
+          <div>
+            <p class="text-sm text-blue-600 font-semibold mb-1">${escapeHtml(materiName)}</p>
+            <h2 class="text-3xl font-bold text-slate-800">${escapeHtml(pkg.title)}</h2>
+            <p class="text-slate-500 mt-2">${pkg.items.length} soal pilihan ganda • durasi ${timerBadge('latihan')}</p>
+          </div>
+          ${readOnly ? `<div class="px-4 py-2 rounded-lg bg-slate-100 text-slate-700 font-bold">Mode baca</div>` : `<div id="timerDisplay" class="px-4 py-2 rounded-lg bg-slate-100 text-slate-700 font-bold">05:00</div>`}
+        </div>
+        ${readOnly ? buildAttemptInfo(attempt, 'blue') : `<div class="mb-6 rounded-xl border border-blue-200 bg-blue-50 p-4 text-sm text-slate-700"><strong>Aturan:</strong> Paket hanya bisa dikerjakan <strong>satu kali</strong>. Jika waktu habis, sistem akan mengumpulkan jawaban otomatis dan memasukkannya ke rekapitulasi.</div>`}
+        <form id="quizForm" class="space-y-6">
+          ${pkg.items.map((q,idx) => {
+            const userAnswer = attempt?.answers?.[idx] ?? '';
+            return `
+              <div class="rounded-xl border border-slate-200 p-5 bg-slate-50">
+                <div class="font-semibold text-slate-800 mb-4">${idx+1}. ${escapeHtml(q.pertanyaan)}</div>
+                <div class="space-y-3">
+                  ${normalizeOptions(q.opsi).map(({ letter, text }) => `
+                    <label class="flex items-start gap-3 rounded-lg border ${readOnly && userAnswer === letter ? 'border-blue-400 bg-blue-50' : 'border-slate-200 bg-white'} px-4 py-3 hover:border-blue-300 cursor-pointer">
+                      <input type="radio" name="q_${idx}" value="${letter}" class="mt-1" ${userAnswer === letter ? 'checked' : ''} ${readOnly ? 'disabled' : ''}>
+                      <span><strong>${letter}.</strong> ${escapeHtml(text)}</span>
+                    </label>`).join('')}
+                </div>
+                ${readOnly ? `<div class="mt-3 text-sm text-slate-700">Jawaban Anda: <strong>${escapeHtml(userAnswer || '-')}</strong> • Kunci: <strong>${escapeHtml(q.jawabanBenar)}</strong></div>${q.pembahasan ? `<div class="mt-2 text-sm text-slate-600">Pembahasan: ${escapeHtml(q.pembahasan)}</div>` : ''}` : ''}
+              </div>`;
+          }).join('')}
+          <div class="flex flex-col sm:flex-row gap-3 pt-2">
+            ${readOnly
+              ? `<button type="button" onclick="showSec('latihan')" class="flex-1 bg-slate-800 text-white rounded-lg py-3 font-bold hover:bg-slate-900 transition">Kembali ke Latihan</button>`
+              : `<button type="button" onclick="submitQuiz(false)" class="flex-1 bg-blue-600 text-white rounded-lg py-3 font-bold hover:bg-blue-700 transition">Selesai & Lihat Nilai</button>`}
+          </div>
+        </form>
+      </div>`;
+    lucide.createIcons();
+  }
+
+  function submitQuiz(auto = false) {
+    if (!currentQuiz) return;
+    const existing = findResultForUser(currentUser.name, 'latihan', currentQuiz.materiId, currentQuiz.packageIndex);
+    if (existing) {
+      clearTimer();
+      renderQuiz(currentQuiz.pkg, currentQuiz.materiName, existing);
+      return;
+    }
+    const form = document.getElementById('quizForm');
+    if (!form) return;
+    let correct = 0;
+    let answeredCount = 0;
+    const answers = currentQuiz.pkg.items.map((q, idx) => {
+      const selected = form.querySelector(`input[name="q_${idx}"]:checked`)?.value || '';
+      if (selected) answeredCount++;
+      if (selected === q.jawabanBenar) correct++;
+      return selected;
+    });
+    const score = Math.round((correct / currentQuiz.pkg.items.length) * 100);
+    const attempt = {
+      id: Date.now(),
+      key: resultIdentifier('latihan', currentQuiz.materiId, currentQuiz.packageIndex),
+      user: currentUser.name,
+      type: 'latihan',
+      materiId: currentQuiz.materiId,
+      packageIndex: currentQuiz.packageIndex,
+      title: currentQuiz.pkg.title,
+      score,
+      correct,
+      total: currentQuiz.pkg.items.length,
+      answeredCount,
+      timeSpentSec: getElapsedSec() || currentQuiz.durationSec,
+      durationSec: currentQuiz.durationSec,
+      status: auto ? 'waktu_habis' : 'selesai',
+      submittedAt: new Date().toISOString(),
+      answers
+    };
+    clearTimer();
+    saveResult(attempt);
+    refreshAll();
+    renderQuiz(currentQuiz.pkg, currentQuiz.materiName, attempt);
+    showToast(auto ? 'Waktu latihan habis. Jawaban otomatis dikumpulkan.' : 'Nilai latihan sudah masuk ke rekapitulasi.', auto ? 'error' : 'success');
+  }
+
+  function tokenize(text) {
+    return String(text || '')
+      .toLowerCase()
+      .replace(/[^a-z0-9\u00C0-\u024F\u1E00-\u1EFF\s]/gi, ' ')
+      .split(/\s+/)
+      .filter(w => w.length > 2);
+  }
+
+  function scoreEssayAnswer(answer, key) {
+    const a = tokenize(answer);
+    const k = [...new Set(tokenize(key))];
+    if (!k.length) return a.length ? 100 : 0;
+    const common = k.filter(word => a.includes(word)).length;
+    return Math.max(0, Math.min(100, Math.round((common / k.length) * 100)));
+  }
+
+  function startEssayPackage(materiId, packageIndex) {
+    const pkg = getEssayPackage(materiId, packageIndex);
+    const materi = dataStorage.materi.find(m => Number(m.id) === Number(materiId));
+    if (!pkg) {
+      showToast('Paket essay tidak ditemukan', 'error');
+      return;
+    }
+    const attempt = findResultForUser(currentUser.name, 'essay', materiId, packageIndex);
+    currentEssay = { materiId, packageIndex, pkg, materiName: materi?.namaMateri || 'Materi', durationSec: ESSAY_DURATION };
+    if (attempt) {
+      clearTimer();
+      renderEssay(pkg, currentEssay.materiName, attempt);
+      showSec('essay');
+      showToast('Essay ini sudah dikerjakan. Dibuka dalam mode baca.', 'info');
+      return;
+    }
+    renderEssay(pkg, currentEssay.materiName, null);
+    getSessionMeta('essay', ESSAY_DURATION, () => submitEssay(true));
+    showSec('essay');
+  }
+
+  function renderEssay(pkg, materiName, attempt = null) {
+    const readOnly = !!attempt;
+    const el = document.getElementById('essayContainer');
+    el.innerHTML = `
+      <div class="bg-white rounded-2xl shadow-sm border border-slate-200 p-6 sm:p-8">
+        <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-8">
+          <div>
+            <p class="text-sm text-orange-600 font-semibold mb-1">${escapeHtml(materiName)}</p>
+            <h2 class="text-3xl font-bold text-slate-800">${escapeHtml(pkg.title)}</h2>
+            <p class="text-slate-500 mt-2">${pkg.items.length} soal essay • durasi ${timerBadge('essay')}</p>
+          </div>
+          ${readOnly ? `<div class="px-4 py-2 rounded-lg bg-slate-100 text-slate-700 font-bold">${attempt?.status === 'dinilai' ? 'Sudah dinilai' : 'Menunggu penilaian'}</div>` : `<div id="timerDisplay" class="px-4 py-2 rounded-lg bg-slate-100 text-slate-700 font-bold">10:00</div>`}
+        </div>
+        ${readOnly ? buildAttemptInfo(attempt, 'orange') : `<div class="mb-6 rounded-xl border border-orange-200 bg-orange-50 p-4 text-sm text-slate-700"><strong>Catatan:</strong> Paket essay dikerjakan maksimal satu kali dengan waktu <strong>10 menit</strong>. Setelah dikumpulkan, jawaban masuk ke admin untuk dinilai dan diberi komentar. Kunci jawaban tidak ditampilkan di sisi siswa.</div>`}
+        <div class="space-y-6">
+          ${pkg.items.map((q,idx) => `
+            <div class="rounded-xl border border-slate-200 p-5 bg-slate-50">
+              <div class="font-semibold text-slate-800 mb-3">${idx+1}. ${escapeHtml(q.pertanyaan)}</div>
+              <textarea class="essay-answer w-full form-input rounded-lg px-4 py-3 h-32 resize-y" data-index="${idx}" placeholder="Tulis jawaban Anda di sini..." ${readOnly ? 'disabled' : ''}>${escapeHtml(attempt?.answers?.[idx] || '')}</textarea>
+              ${readOnly ? `<div class="mt-3 text-sm text-slate-700">Status penilaian: <strong>${attempt.status === 'dinilai' ? 'Sudah dinilai admin' : 'Menunggu penilaian admin'}</strong></div>` : ''}
+            </div>
+          `).join('')}
+          <div class="flex flex-col sm:flex-row gap-3">
+            ${readOnly
+              ? `<button onclick="showSec('latihan')" class="flex-1 bg-slate-800 text-white rounded-lg py-3 font-bold hover:bg-slate-900 transition">Kembali ke Latihan</button>`
+              : `<button onclick="submitEssay(false)" class="flex-1 bg-orange-600 text-white rounded-lg py-3 font-bold hover:bg-orange-700 transition">Simpan & Lihat Nilai</button>`}
+          </div>
+        </div>
+      </div>`;
+    lucide.createIcons();
+  }
+
+  function submitEssay(auto = false) {
+    if (!currentEssay) return;
+    const existing = findResultForUser(currentUser.name, 'essay', currentEssay.materiId, currentEssay.packageIndex);
+    if (existing) {
+      clearTimer();
+      renderEssay(currentEssay.pkg, currentEssay.materiName, existing);
+      return;
+    }
+    const answers = Array.from(document.querySelectorAll('.essay-answer')).map(el => el.value.trim());
+    const answeredCount = answers.filter(Boolean).length;
+    const attempt = {
+      id: Date.now(),
+      key: resultIdentifier('essay', currentEssay.materiId, currentEssay.packageIndex),
+      user: currentUser.name,
+      type: 'essay',
+      materiId: currentEssay.materiId,
+      packageIndex: currentEssay.packageIndex,
+      title: currentEssay.pkg.title,
+      score: null,
+      total: currentEssay.pkg.items.length,
+      answeredCount,
+      timeSpentSec: getElapsedSec() || currentEssay.durationSec,
+      durationSec: currentEssay.durationSec,
+      status: auto ? 'waktu_habis_menunggu_penilaian' : 'menunggu_penilaian',
+      submittedAt: new Date().toISOString(),
+      answers,
+      teacherComment: '',
+      gradedAt: null,
+      gradedBy: null
+    };
+    clearTimer();
+    saveResult(attempt);
+    refreshAll();
+    renderEssay(currentEssay.pkg, currentEssay.materiName, attempt);
+    showToast(auto ? 'Waktu essay habis. Jawaban otomatis dikirim ke admin untuk dinilai.' : 'Essay berhasil dikirim. Menunggu penilaian admin.', auto ? 'error' : 'success');
+  }
+
+  function startTryoutPackage(packageIndex) {
+    const pkg = getTryoutPackage(packageIndex);
+    if (!pkg) {
+      showToast('Paket tryout tidak ditemukan', 'error');
+      return;
+    }
+    const attempt = findResultForUser(currentUser.name, 'tryout', 0, packageIndex);
+    currentTryout = { packageIndex, pkg, durationSec: TRYOUT_DURATION };
+    if (attempt) {
+      clearTimer();
+      renderTryout(pkg, attempt);
+      showSec('tryoutQuiz');
+      showToast('Tryout ini sudah dikerjakan. Dibuka dalam mode baca.', 'info');
+      return;
+    }
+    renderTryout(pkg, null);
+    getSessionMeta('tryout', TRYOUT_DURATION, () => submitTryout(true));
+    showSec('tryoutQuiz');
+  }
+
+  function renderTryout(pkg, attempt = null) {
+    const readOnly = !!attempt;
+    const el = document.getElementById('tryoutQuizContainer');
+    el.innerHTML = `
+      <div class="bg-white rounded-2xl shadow-sm border border-slate-200 p-6 sm:p-8">
+        <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-8">
+          <div>
+            <p class="text-sm text-purple-600 font-semibold mb-1">Tryout</p>
+            <h2 class="text-3xl font-bold text-slate-800">${escapeHtml(pkg.title)}</h2>
+            <p class="text-slate-500 mt-2">${pkg.items.length} soal • Level ${escapeHtml(pkg.items[0]?.level || 'Menengah')} • durasi ${timerBadge('tryout')}</p>
+          </div>
+          ${readOnly ? `<div class="px-4 py-2 rounded-lg bg-slate-100 text-slate-700 font-bold">Mode baca</div>` : `<div id="timerDisplay" class="px-4 py-2 rounded-lg bg-slate-100 text-slate-700 font-bold">20:00</div>`}
+        </div>
+        ${readOnly ? buildAttemptInfo(attempt, 'purple') : `<div class="mb-6 rounded-xl border border-purple-200 bg-purple-50 p-4 text-sm text-slate-700"><strong>Aturan:</strong> Tryout hanya bisa dikerjakan satu kali. Jika waktu habis, sistem otomatis mengumpulkan jawaban yang sudah terisi dan menyimpannya ke rekapitulasi.</div>`}
+        <form id="tryoutForm" class="space-y-6">
+          ${pkg.items.map((q,idx) => {
+            const userAnswer = attempt?.answers?.[idx] ?? '';
+            return `
+              <div class="rounded-xl border border-slate-200 p-5 bg-slate-50">
+                <div class="font-semibold text-slate-800 mb-4">${idx+1}. ${escapeHtml(q.pertanyaan)}</div>
+                <div class="space-y-3">
+                  ${normalizeOptions(q.opsi).map(({ letter, text }) => `
+                    <label class="flex items-start gap-3 rounded-lg border ${readOnly && userAnswer === letter ? 'border-purple-400 bg-purple-50' : 'border-slate-200 bg-white'} px-4 py-3 hover:border-purple-300 cursor-pointer">
+                      <input type="radio" name="t_${idx}" value="${letter}" class="mt-1" ${userAnswer === letter ? 'checked' : ''} ${readOnly ? 'disabled' : ''}>
+                      <span><strong>${letter}.</strong> ${escapeHtml(text)}</span>
+                    </label>`).join('')}
+                </div>
+                ${readOnly ? `<div class="mt-3 text-sm text-slate-700">Jawaban Anda: <strong>${escapeHtml(userAnswer || '-')}</strong> • Kunci: <strong>${escapeHtml(q.jawabanBenar)}</strong></div>${q.pembahasan ? `<div class="mt-2 text-sm text-slate-600">Pembahasan: ${escapeHtml(q.pembahasan)}</div>` : ''}` : ''}
+              </div>`;
+          }).join('')}
+          <div class="flex flex-col sm:flex-row gap-3 pt-2">
+            ${readOnly
+              ? `<button type="button" onclick="showSec('tryout')" class="flex-1 bg-slate-800 text-white rounded-lg py-3 font-bold hover:bg-slate-900 transition">Kembali ke Tryout</button>`
+              : `<button type="button" onclick="submitTryout(false)" class="flex-1 bg-purple-600 text-white rounded-lg py-3 font-bold hover:bg-purple-700 transition">Selesai Tryout</button>`}
+          </div>
+        </form>
+      </div>`;
+    lucide.createIcons();
+  }
+
+  function submitTryout(auto = false) {
+    if (!currentTryout) return;
+    const existing = findResultForUser(currentUser.name, 'tryout', 0, currentTryout.packageIndex);
+    if (existing) {
+      clearTimer();
+      renderTryout(currentTryout.pkg, existing);
+      return;
+    }
+    const form = document.getElementById('tryoutForm');
+    if (!form) return;
+    let correct = 0;
+    let answeredCount = 0;
+    const answers = currentTryout.pkg.items.map((q, idx) => {
+      const selected = form.querySelector(`input[name="t_${idx}"]:checked`)?.value || '';
+      if (selected) answeredCount++;
+      if (selected === q.jawabanBenar) correct++;
+      return selected;
+    });
+    const score = Math.round((correct / currentTryout.pkg.items.length) * 100);
+    const attempt = {
+      id: Date.now(),
+      key: resultIdentifier('tryout', 0, currentTryout.packageIndex),
+      user: currentUser.name,
+      type: 'tryout',
+      materiId: 0,
+      packageIndex: currentTryout.packageIndex,
+      title: currentTryout.pkg.title,
+      score,
+      correct,
+      total: currentTryout.pkg.items.length,
+      answeredCount,
+      timeSpentSec: getElapsedSec() || currentTryout.durationSec,
+      durationSec: currentTryout.durationSec,
+      status: auto ? 'waktu_habis' : 'selesai',
+      submittedAt: new Date().toISOString(),
+      answers
+    };
+    clearTimer();
+    saveResult(attempt);
+    refreshAll();
+    renderTryout(currentTryout.pkg, attempt);
+    showToast(auto ? 'Waktu tryout habis. Jawaban otomatis dikumpulkan.' : 'Hasil tryout sudah masuk ke rekapitulasi.', auto ? 'error' : 'success');
+  }
+
+  loadData();
+  refreshAll();
+  
+  loadData();
+  setLoginRole('admin');
+  applyRoleUI();
+lucide.createIcons();
+</script>
+
+
+<script>
+(function(){
+  if (window.__tryoutEnhancementV5) return;
+  window.__tryoutEnhancementV5 = true;
+
+  const TRYOUT_DURATION_V5 = 25 * 60;
+
+  function tryoutTextColorClass(color){
+    return {
+      blue: 'text-blue-700',
+      purple: 'text-purple-700',
+      indigo: 'text-indigo-700',
+      pink: 'text-pink-700',
+      emerald: 'text-emerald-700'
+    }[color] || 'text-purple-700';
+  }
+
+  window.timerBadge = function(type) {
+    if (type === 'latihan') return '5 menit';
+    if (type === 'essay') return '10 menit';
+    return '25 menit';
+  };
+
+  window.getTryoutAttemptsForUser = function(user, packageIndex) {
+    return dataStorage.results
+      .filter(r => r.user === user && r.type === 'tryout' && Number(r.packageIndex) === Number(packageIndex))
+      .sort((a,b) => new Date(a.submittedAt || 0) - new Date(b.submittedAt || 0));
+  };
+
+  window.getTryoutAttemptLabel = function(attemptNumber) {
+    return Number(attemptNumber) === 0 ? 'Nilai awal' : `Pengulangan ${attemptNumber}`;
+  };
+
+  window.scrollToTryoutQuestion = function(idx) {
+    document.getElementById(`tryQ_${idx}`)?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  };
+
+  window.updateTryoutNavigator = function(total, readOnly = false, answers = []) {
+    for (let idx = 0; idx < total; idx++) {
+      const btn = document.getElementById(`tryNav_${idx}`);
+      if (!btn) continue;
+      const val = readOnly
+        ? (answers[idx] || '')
+        : (document.querySelector(`input[name="t_${idx}"]:checked`)?.value || '');
+      const base = 'w-10 h-10 rounded-lg text-sm font-bold border transition';
+      btn.className = val
+        ? `${base} bg-purple-600 text-white border-purple-600`
+        : `${base} bg-white text-slate-600 border-slate-300 hover:border-purple-400`;
+    }
+  };
+
+  window.renderTryoutUser = function() {
+    const root = document.getElementById('tryoutUserPackages');
+    if (!root) return;
+    const packages = chunkIntoPackages(dataStorage.tryout, TRYOUT_PER_PAKET, 'Tryout Paket');
+    if (!packages.length) {
+      root.innerHTML = emptyState('Belum ada paket tryout siap tampil. Paket akan muncul setelah bank soal genap 50 soal.', 'inbox');
+      lucide.createIcons();
+      return;
+    }
+
+    const colorDefs = [
+      { bg: 'from-blue-500 to-blue-700', text: 'blue', icon: 'zap' },
+      { bg: 'from-purple-500 to-indigo-700', text: 'purple', icon: 'rocket' },
+      { bg: 'from-indigo-500 to-indigo-700', text: 'indigo', icon: 'brain' },
+      { bg: 'from-pink-500 to-pink-700', text: 'pink', icon: 'sparkles' },
+      { bg: 'from-emerald-500 to-emerald-700', text: 'emerald', icon: 'award' }
+    ];
+
+    root.innerHTML = packages.map((pkg, idx) => {
+      const palette = colorDefs[idx % colorDefs.length];
+      const attempts = getTryoutAttemptsForUser(currentUser.name, idx);
+      const latest = attempts[attempts.length - 1];
+      const level = pkg.items[0]?.level || 'Menengah';
+      const latestInfo = latest
+        ? `<div class="bg-white/15 rounded-lg p-3 mb-4 text-sm">
+            <div class="font-semibold">${escapeHtml(latest.attemptLabel || getTryoutAttemptLabel(latest.attemptNumber || 0))}</div>
+            <div>Nilai ${latest.score}% • ${latest.status === 'waktu_habis' ? 'Waktu habis' : 'Selesai'} • ${prettyDate(latest.submittedAt)}</div>
+            <div class="mt-1">Total percobaan: ${attempts.length}</div>
+          </div>`
+        : `<div class="bg-white/15 rounded-lg p-4 mb-4 text-sm"><div class="font-semibold mb-2">Preview soal pertama:</div><div>${escapeHtml(pkg.items[0].pertanyaan)}</div></div>`;
+
+      return `
+        <div class="card bg-gradient-to-br ${palette.bg} text-white rounded-2xl p-8 shadow-lg relative">
+          <div class="absolute inset-0 rounded-2xl bg-white/0 hover:bg-white/10 transition"></div>
+          <div class="relative z-10">
+            <div class="flex items-start justify-between gap-3 mb-4">
+              <div>
+                <h3 class="text-2xl font-bold">${escapeHtml(pkg.title)}</h3>
+                <p class="text-sm opacity-90 mt-2">Tryout analitis dengan waktu ${timerBadge('tryout')}</p>
+              </div>
+              <span class="bg-white/20 px-3 py-1 rounded-full text-xs font-bold">${pkg.items.length} Soal</span>
+            </div>
+            <div class="space-y-2 mb-4 text-sm font-semibold">
+              <div class="flex items-center gap-2"><i data-lucide="${palette.icon}" class="w-4 h-4"></i><span>Level ${escapeHtml(level)}</span></div>
+              <div class="flex items-center gap-2"><i data-lucide="clock" class="w-4 h-4"></i><span>${timerBadge('tryout')}</span></div>
+              <div class="flex items-center gap-2"><i data-lucide="shuffle" class="w-4 h-4"></i><span>Boleh diulang berkali-kali</span></div>
+            </div>
+            ${latestInfo}
+            <div class="grid sm:grid-cols-2 gap-3">
+              <button onclick="startTryoutPackage(${idx}, 'new')" class="bg-white ${tryoutTextColorClass(palette.text)} px-6 py-3 rounded-lg font-bold hover:bg-slate-100 transition">
+                ${attempts.length ? 'Ulangi Tryout' : 'Mulai Tryout'}
+              </button>
+              ${latest ? `<button onclick="startTryoutPackage(${idx}, 'view', ${latest.id})" class="bg-white/15 border border-white/30 text-white px-6 py-3 rounded-lg font-bold hover:bg-white/20 transition">Lihat Hasil Terakhir</button>` : `<div></div>`}
+            </div>
+          </div>
+        </div>`;
+    }).join('');
+    lucide.createIcons();
+  };
+
+  window.startTryoutPackage = function(packageIndex, mode = 'new', attemptId = null) {
+    const pkg = getTryoutPackage(packageIndex);
+    if (!pkg) {
+      showToast('Paket tryout tidak ditemukan', 'error');
+      return;
+    }
+    const attempts = getTryoutAttemptsForUser(currentUser.name, packageIndex);
+    if (mode === 'view' && attemptId !== null) {
+      const attempt = attempts.find(r => Number(r.id) === Number(attemptId)) || attempts[attempts.length - 1];
+      if (!attempt) return showToast('Riwayat tryout tidak ditemukan.', 'error');
+      clearTimer();
+      currentTryout = { packageIndex, pkg, durationSec: TRYOUT_DURATION_V5, attemptNumber: attempt.attemptNumber || 0 };
+      renderTryout(pkg, attempt, attempts);
+      showSec('tryoutQuiz');
+      showToast('Membuka hasil tryout dalam mode baca.', 'info');
+      return;
+    }
+
+    currentTryout = {
+      packageIndex,
+      pkg,
+      durationSec: TRYOUT_DURATION_V5,
+      attemptNumber: attempts.length
+    };
+    renderTryout(pkg, null, attempts);
+    getSessionMeta('tryout', TRYOUT_DURATION_V5, () => submitTryout(true));
+    showSec('tryoutQuiz');
+  };
+
+  window.renderTryout = function(pkg, attempt = null, attempts = []) {
+    const readOnly = !!attempt;
+    const el = document.getElementById('tryoutQuizContainer');
+    if (!el) return;
+    const attemptHistory = attempts.length
+      ? `<div class="mb-6 rounded-xl border border-slate-200 bg-slate-50 p-4">
+          <div class="font-semibold text-slate-800 mb-3">Riwayat Paket Ini</div>
+          <div class="flex flex-wrap gap-2">
+            ${attempts.map(a => `
+              <button type="button"
+                onclick="startTryoutPackage(${currentTryout?.packageIndex ?? 0}, 'view', ${a.id})"
+                class="px-3 py-2 rounded-lg border ${attempt && Number(attempt.id) === Number(a.id) ? 'bg-purple-600 text-white border-purple-600' : 'bg-white text-slate-700 border-slate-300 hover:border-purple-400'} text-sm font-semibold">
+                ${escapeHtml(a.attemptLabel || getTryoutAttemptLabel(a.attemptNumber || 0))} • ${a.score ?? '-'}%
+              </button>`).join('')}
+          </div>
+        </div>`
+      : '';
+
+    el.innerHTML = `
+      <div class="bg-white rounded-2xl shadow-sm border border-slate-200 p-6 sm:p-8">
+        <div class="flex flex-col lg:flex-row lg:items-start lg:justify-between gap-4 mb-6">
+          <div>
+            <p class="text-sm text-purple-600 font-semibold mb-1">Tryout</p>
+            <h2 class="text-3xl font-bold text-slate-800">${escapeHtml(attempt?.title || pkg.title)}</h2>
+            <p class="text-slate-500 mt-2">${pkg.items.length} soal • Level ${escapeHtml(pkg.items[0]?.level || 'Menengah')} • durasi ${timerBadge('tryout')}</p>
+          </div>
+          ${readOnly
+            ? `<div class="px-4 py-2 rounded-lg bg-slate-100 text-slate-700 font-bold">Mode baca</div>`
+            : `<div id="timerDisplay" class="px-4 py-2 rounded-lg bg-slate-100 text-slate-700 font-bold">25:00</div>`}
+        </div>
+
+        ${readOnly
+          ? buildAttemptInfo(attempt, 'purple')
+          : `<div class="mb-6 rounded-xl border border-purple-200 bg-purple-50 p-4 text-sm text-slate-700">
+              <strong>Aturan:</strong> Tryout berdurasi <strong>25 menit</strong>. Anda bisa berpindah nomor lewat navigasi di bawah. Saat waktu habis, sistem otomatis mengumpulkan jawaban yang sudah terisi.
+            </div>`}
+
+        ${attemptHistory}
+
+        <div class="mb-6 rounded-xl border border-slate-200 bg-slate-50 p-4">
+          <div class="flex items-center justify-between gap-3 mb-3">
+            <div class="font-semibold text-slate-800">Navigasi Nomor</div>
+            <div class="text-xs text-slate-500">${readOnly ? 'Klik nomor untuk lompat ke soal' : 'Nomor ungu = sudah dijawab'}</div>
+          </div>
+          <div class="flex flex-wrap gap-2">
+            ${pkg.items.map((_, idx) => `
+              <button type="button" id="tryNav_${idx}" onclick="scrollToTryoutQuestion(${idx})" class="w-10 h-10 rounded-lg text-sm font-bold border bg-white text-slate-600 border-slate-300 hover:border-purple-400">${idx + 1}</button>
+            `).join('')}
+          </div>
+        </div>
+
+        <form id="tryoutForm" class="space-y-6">
+          ${pkg.items.map((q,idx) => {
+            const userAnswer = attempt?.answers?.[idx] ?? '';
+            return `
+              <div id="tryQ_${idx}" class="rounded-xl border border-slate-200 p-5 bg-slate-50 scroll-mt-28">
+                <div class="font-semibold text-slate-800 mb-4">${idx+1}. ${escapeHtml(q.pertanyaan)}</div>
+                <div class="space-y-3">
+                  ${normalizeOptions(q.opsi).map(({ letter, text }) => `
+                    <label class="flex items-start gap-3 rounded-lg border ${readOnly && userAnswer === letter ? 'border-purple-400 bg-purple-50' : 'border-slate-200 bg-white'} px-4 py-3 hover:border-purple-300 cursor-pointer">
+                      <input type="radio" name="t_${idx}" value="${letter}" class="mt-1" ${userAnswer === letter ? 'checked' : ''} ${readOnly ? 'disabled' : ''}>
+                      <span><strong>${letter}.</strong> ${escapeHtml(text)}</span>
+                    </label>`).join('')}
+                </div>
+                ${readOnly ? `<div class="mt-3 text-sm text-slate-700">Jawaban Anda: <strong>${escapeHtml(userAnswer || '-')}</strong> • Kunci: <strong>${escapeHtml(q.jawabanBenar)}</strong></div>${q.pembahasan ? `<div class="mt-2 text-sm text-slate-600">Pembahasan: ${escapeHtml(q.pembahasan)}</div>` : ''}` : ''}
+              </div>`;
+          }).join('')}
+          <div class="sticky bottom-3 bg-white/95 backdrop-blur border border-slate-200 rounded-xl p-4 shadow-lg">
+            <div class="flex flex-col sm:flex-row gap-3">
+              ${readOnly
+                ? `<button type="button" onclick="showSec('tryout')" class="flex-1 bg-slate-800 text-white rounded-lg py-3 font-bold hover:bg-slate-900 transition">Kembali ke Tryout</button>
+                   <button type="button" onclick="startTryoutPackage(${currentTryout?.packageIndex ?? 0}, 'new')" class="flex-1 bg-purple-600 text-white rounded-lg py-3 font-bold hover:bg-purple-700 transition">Kerjakan Ulang</button>`
+                : `<button type="button" onclick="submitTryout(false)" class="flex-1 bg-purple-600 text-white rounded-lg py-3 font-bold hover:bg-purple-700 transition">Selesai Tryout</button>
+                   <button type="button" onclick="showSec('tryout')" class="flex-1 bg-slate-200 text-slate-800 rounded-lg py-3 font-bold hover:bg-slate-300 transition">Kembali ke Daftar Paket</button>`}
+            </div>
+          </div>
+        </form>
+      </div>`;
+
+    if (!readOnly) {
+      document.querySelectorAll('#tryoutForm input[type="radio"]').forEach(input => {
+        input.addEventListener('change', () => updateTryoutNavigator(pkg.items.length, false));
+      });
+      updateTryoutNavigator(pkg.items.length, false);
+    } else {
+      updateTryoutNavigator(pkg.items.length, true, attempt.answers || []);
+    }
+    lucide.createIcons();
+  };
+
+  window.submitTryout = function(auto = false) {
+    if (!currentTryout) return;
+    const form = document.getElementById('tryoutForm');
+    if (!form) return;
+
+    let correct = 0;
+    let answeredCount = 0;
+    const answers = currentTryout.pkg.items.map((q, idx) => {
+      const selected = form.querySelector(`input[name="t_${idx}"]:checked`)?.value || '';
+      if (selected) answeredCount++;
+      if (selected === q.jawabanBenar) correct++;
+      return selected;
+    });
+
+    const score = Math.round((correct / currentTryout.pkg.items.length) * 100);
+    const attemptNumber = Number(currentTryout.attemptNumber ?? getTryoutAttemptsForUser(currentUser.name, currentTryout.packageIndex).length);
+    const attemptLabel = getTryoutAttemptLabel(attemptNumber);
+    const attempt = {
+      id: Date.now(),
+      key: `tryout|0|${currentTryout.packageIndex}|${attemptNumber}`,
+      user: currentUser.name,
+      type: 'tryout',
+      materiId: 0,
+      packageIndex: currentTryout.packageIndex,
+      title: `${currentTryout.pkg.title} • ${attemptLabel}`,
+      attemptNumber,
+      attemptLabel,
+      score,
+      correct,
+      total: currentTryout.pkg.items.length,
+      answeredCount,
+      timeSpentSec: getElapsedSec() || currentTryout.durationSec,
+      durationSec: currentTryout.durationSec,
+      status: auto ? 'waktu_habis' : 'selesai',
+      submittedAt: new Date().toISOString(),
+      answers
+    };
+
+    clearTimer();
+    dataStorage.results.push(attempt);
+    saveData();
+    refreshAll();
+    const attempts = getTryoutAttemptsForUser(currentUser.name, currentTryout.packageIndex);
+    renderTryout(currentTryout.pkg, attempt, attempts);
+    showToast(
+      auto ? 'Waktu tryout habis. Jawaban otomatis dikumpulkan dan masuk ke transkrip.' : 'Hasil tryout langsung muncul, masuk ke transkrip, dan tersinkron ke admin.',
+      auto ? 'error' : 'success'
+    );
+  };
+
+  const _oldBuildAttemptInfo = window.buildAttemptInfo;
+  window.buildAttemptInfo = function(attempt, labelColor='blue') {
+    let html = _oldBuildAttemptInfo ? _oldBuildAttemptInfo(attempt, labelColor) : '';
+    if (attempt?.type === 'tryout' && attempt?.attemptLabel && html.includes('</div>')) {
+      html = html.replace('<div class="grid sm:grid-cols-4 gap-3 text-sm">', `<div class="mb-3 text-sm"><strong>Percobaan:</strong> ${escapeHtml(attempt.attemptLabel)}</div><div class="grid sm:grid-cols-4 gap-3 text-sm">`);
+    }
+    return html;
+  };
+
+  // Re-render with new behavior after overrides.
+  try {
+    refreshAll();
+    lucide.createIcons();
+  } catch (e) {
+    console.error('Tryout enhancement refresh failed', e);
+  }
+})();
+</script>
+
+
+<script>
+(function(){
+  if (window.__tryoutRenderFixV6) return;
+  window.__tryoutRenderFixV6 = true;
+
+  function getTryoutGridEl(){
+    return document.getElementById('tryoutGrid') || document.getElementById('tryoutUserPackages');
+  }
+
+  function normalizeTryoutItem(item, idx){
+    if (!item || typeof item !== 'object') return null;
+    let opsi = item.opsi;
+    if (Array.isArray(opsi)) {
+      opsi = { A: opsi[0] || '', B: opsi[1] || '', C: opsi[2] || '', D: opsi[3] || '' };
+    } else if (!opsi || typeof opsi !== 'object') {
+      opsi = { A: item.A || '', B: item.B || '', C: item.C || '', D: item.D || '' };
+    } else {
+      opsi = { A: opsi.A || '', B: opsi.B || '', C: opsi.C || '', D: opsi.D || '' };
+    }
+    const pertanyaan = String(item.pertanyaan || '').trim();
+    const jawabanBenar = String(item.jawabanBenar || '').trim().toUpperCase();
+    if (!pertanyaan || !opsi.A || !opsi.B || !opsi.C || !opsi.D || !jawabanBenar) return null;
+    return {
+      ...item,
+      id: Number(item.id) || (Date.now() + idx),
+      level: item.level || 'Menengah',
+      pertanyaan,
+      opsi,
+      jawabanBenar,
+      pembahasan: item.pembahasan || ''
+    };
+  }
+
+  window.getNormalizedTryoutBank = function(){
+    return (dataStorage.tryout || []).map(normalizeTryoutItem).filter(Boolean);
+  };
+
+  window.getTryoutPackage = function(packageIndex) {
+    return chunkIntoPackages(getNormalizedTryoutBank(), TRYOUT_PER_PAKET, 'Tryout Paket')[packageIndex] || null;
+  };
+
+  window.bulkAddTryout = function() {
+    const levelInput = document.getElementById('adminTryoutLevel');
+    const level = (levelInput?.value || '').trim() || 'Menengah';
+    const bulk = (document.getElementById('adminTryoutBulk')?.value || '').trim();
+    if (!bulk) return showToast('Paste soal tryout terlebih dulu', 'error');
+
+    const { rows, skipped } = parseBulkLines(bulk, 6);
+    if (!rows.length) return showToast('Format bulk tryout tidak valid', 'error');
+
+    rows.forEach(parts => {
+      const [pertanyaan, A, B, C, D, jawabanBenar, ...rest] = parts;
+      dataStorage.tryout.push({
+        id: nextId(dataStorage.tryout),
+        level,
+        pertanyaan: (pertanyaan || '').trim(),
+        opsi: { A: (A || '').trim(), B: (B || '').trim(), C: (C || '').trim(), D: (D || '').trim() },
+        jawabanBenar: String(jawabanBenar || '').trim().toUpperCase(),
+        pembahasan: rest.join(' | ').trim()
+      });
+    });
+
+    document.getElementById('adminTryoutBulk').value = '';
+    if (levelInput) levelInput.value = '';
+    saveData();
+    refreshAll();
+    switchMentorTab('tryout');
+    const total = getNormalizedTryoutBank().length;
+    const siap = Math.floor(total / TRYOUT_PER_PAKET);
+    const draft = total % TRYOUT_PER_PAKET;
+    showToast(`${rows.length} soal tryout diproses • Paket siap: ${siap}${draft ? ` • Draft: ${draft} soal` : ''}${skipped.length ? ` • Baris dilewati: ${skipped.join(', ')}` : ''}`, 'success');
+  };
+
+  window.renderMentorTryoutList = function() {
+    const el = document.getElementById('adminTryoutList');
+    if (!el) return;
+    const bank = getNormalizedTryoutBank();
+    if (!bank.length) {
+      el.innerHTML = emptyState('Belum ada bank soal tryout', 'inbox');
+      lucide.createIcons();
+      return;
+    }
+    const paket = Math.floor(bank.length / TRYOUT_PER_PAKET);
+    const sisa = bank.length % TRYOUT_PER_PAKET;
+    el.innerHTML = `
+      <div class="p-4 rounded-lg border border-slate-200 bg-slate-50 mb-4">
+        <div class="font-semibold text-slate-800">Ringkasan Tryout</div>
+        <div class="text-xs text-slate-500 mt-1">${bank.length} soal valid • ${paket} paket siap tampil${sisa ? ` • draft ${sisa} soal` : ''}</div>
+      </div>
+      <div class="space-y-2">
+        ${bank.slice(-10).reverse().map(item => `
+          <div class="flex items-start justify-between gap-3 p-3 bg-white rounded-lg border border-slate-200">
+            <div class="flex-1">
+              <div class="text-xs text-purple-600 mb-1">${escapeHtml(item.level || 'Menengah')}</div>
+              <div class="text-sm text-slate-600">${escapeHtml(item.pertanyaan)}</div>
+            </div>
+            <button onclick="askDelete('tryout', ${item.id})" class="delete-btn p-2 text-red-600 hover:bg-red-50 rounded-lg"><i data-lucide="trash-2" class="w-4 h-4"></i></button>
+          </div>`).join('')}
+      </div>`;
+    lucide.createIcons();
+  };
+
+  window.renderTryoutUser = function() {
+    const root = getTryoutGridEl();
+    if (!root) return;
+    const bank = getNormalizedTryoutBank();
+    const packages = chunkIntoPackages(bank, TRYOUT_PER_PAKET, 'Tryout Paket');
+    const sisa = bank.length % TRYOUT_PER_PAKET;
+
+    if (!packages.length) {
+      root.innerHTML = `
+        <div class="md:col-span-2 bg-white rounded-2xl border border-dashed border-slate-300 p-10 text-center text-slate-500">
+          <i data-lucide="inbox" class="w-12 h-12 mx-auto mb-3 opacity-50"></i>
+          <p>Belum ada paket tryout siap tampil. Paket akan muncul setelah bank soal genap ${TRYOUT_PER_PAKET} soal.</p>
+          <p class="text-sm mt-2">Soal valid saat ini: ${bank.length}${sisa ? ` • Draft: ${sisa} soal` : ''}</p>
+        </div>`;
+      lucide.createIcons();
+      return;
+    }
+
+    const colorDefs = [
+      { bg: 'from-blue-500 to-blue-700', text: 'blue', icon: 'zap' },
+      { bg: 'from-purple-500 to-indigo-700', text: 'purple', icon: 'rocket' },
+      { bg: 'from-indigo-500 to-indigo-700', text: 'indigo', icon: 'brain' },
+      { bg: 'from-pink-500 to-pink-700', text: 'pink', icon: 'sparkles' },
+      { bg: 'from-emerald-500 to-emerald-700', text: 'emerald', icon: 'award' }
+    ];
+
+    root.innerHTML = packages.map((pkg, idx) => {
+      const palette = colorDefs[idx % colorDefs.length];
+      const attempts = (window.getTryoutAttemptsForUser ? getTryoutAttemptsForUser(currentUser.name, idx) : []).sort((a,b)=>new Date(a.submittedAt||0)-new Date(b.submittedAt||0));
+      const latest = attempts[attempts.length - 1];
+      const level = pkg.items[0]?.level || 'Menengah';
+      const latestInfo = latest
+        ? `<div class="bg-white/15 rounded-lg p-3 mb-4 text-sm">
+            <div class="font-semibold">${escapeHtml(latest.attemptLabel || (window.getTryoutAttemptLabel ? getTryoutAttemptLabel(latest.attemptNumber || 0) : 'Nilai awal'))}</div>
+            <div>Nilai ${latest.score}% • ${latest.status === 'waktu_habis' ? 'Waktu habis' : 'Selesai'} • ${prettyDate(latest.submittedAt)}</div>
+            <div class="mt-1">Total percobaan: ${attempts.length}</div>
+          </div>`
+        : `<div class="bg-white/15 rounded-lg p-4 mb-4 text-sm"><div class="font-semibold mb-2">Preview soal pertama:</div><div>${escapeHtml(pkg.items[0].pertanyaan)}</div></div>`;
+
+      return `
+        <div class="card bg-gradient-to-br ${palette.bg} text-white rounded-2xl p-8 shadow-lg relative">
+          <div class="absolute inset-0 rounded-2xl bg-white/0 hover:bg-white/10 transition"></div>
+          <div class="relative z-10">
+            <div class="flex items-start justify-between gap-3 mb-4">
+              <div>
+                <h3 class="text-2xl font-bold">${escapeHtml(pkg.title)}</h3>
+                <p class="text-sm opacity-90 mt-2">Tryout analitis dengan waktu 25 menit</p>
+              </div>
+              <span class="bg-white/20 px-3 py-1 rounded-full text-xs font-bold">${pkg.items.length} Soal</span>
+            </div>
+            <div class="space-y-2 mb-4 text-sm font-semibold">
+              <div class="flex items-center gap-2"><i data-lucide="${palette.icon}" class="w-4 h-4"></i><span>Level ${escapeHtml(level)}</span></div>
+              <div class="flex items-center gap-2"><i data-lucide="clock" class="w-4 h-4"></i><span>25 menit</span></div>
+              <div class="flex items-center gap-2"><i data-lucide="shuffle" class="w-4 h-4"></i><span>Boleh diulang berkali-kali</span></div>
+            </div>
+            ${latestInfo}
+            <div class="grid sm:grid-cols-2 gap-3">
+              <button onclick="startTryoutPackage(${idx}, 'new')" class="bg-white text-slate-900 px-6 py-3 rounded-lg font-bold hover:bg-slate-100 transition">
+                ${attempts.length ? 'Ulangi Tryout' : 'Mulai Tryout'}
+              </button>
+              ${latest ? `<button onclick="startTryoutPackage(${idx}, 'view', ${latest.id})" class="bg-white/15 border border-white/30 text-white px-6 py-3 rounded-lg font-bold hover:bg-white/20 transition">Lihat Hasil Terakhir</button>` : '<div></div>'}
+            </div>
+          </div>
+        </div>`;
+    }).join('');
+    lucide.createIcons();
+  };
+
+  try {
+    refreshAll();
+    lucide.createIcons();
+  } catch (e) {
+    console.error('Tryout render fix failed', e);
+  }
+})();
+
+(function(){
+  if (window.__tryoutBulkCounterV8) return;
+  window.__tryoutBulkCounterV8 = true;
+
+  function setText(id, val){
+    const el = document.getElementById(id);
+    if (el) el.textContent = String(val);
+  }
+
+  function setHint(msg, tone){
+    const el = document.getElementById('tryoutBulkHint');
+    if (!el) return;
+    el.className = 'mt-3 text-xs ' + (
+      tone === 'error' ? 'text-red-600' :
+      tone === 'ok' ? 'text-green-700' :
+      'text-slate-600'
+    );
+    el.textContent = msg;
+  }
+
+  window.previewTryoutBulk = function(){
+    const bulkEl = document.getElementById('adminTryoutBulk');
+    if (!bulkEl) return;
+    const raw = bulkEl.value || '';
+    if (!raw.trim()) {
+      setText('tryoutBulkValid', 0);
+      setText('tryoutBulkSkipped', 0);
+      setText('tryoutBulkReadyNow', 0);
+      const total = (window.getNormalizedTryoutBank ? getNormalizedTryoutBank().length : (dataStorage.tryout || []).length);
+      setText('tryoutBulkReadyTotal', Math.floor(total / TRYOUT_PER_PAKET));
+      setHint('Paste soal untuk melihat preview hasil parsing otomatis.', 'info');
+      return;
+    }
+
+    const parsed = parseBulkLines(raw, 6);
+    const valid = parsed.rows.length;
+    const skipped = parsed.skipped.length;
+    const existing = (window.getNormalizedTryoutBank ? getNormalizedTryoutBank().length : (dataStorage.tryout || []).length);
+    const readyNow = Math.floor(valid / TRYOUT_PER_PAKET);
+    const totalAfter = existing + valid;
+    const readyTotal = Math.floor(totalAfter / TRYOUT_PER_PAKET);
+    const draftAfter = totalAfter % TRYOUT_PER_PAKET;
+
+    setText('tryoutBulkValid', valid);
+    setText('tryoutBulkSkipped', skipped);
+    setText('tryoutBulkReadyNow', readyNow);
+    setText('tryoutBulkReadyTotal', readyTotal);
+
+    if (!valid) {
+      setHint('Belum ada soal valid yang terbaca. Periksa lagi pemisah | atau struktur tiap soal.', 'error');
+      return;
+    }
+
+    const skipInfo = skipped ? ` • Baris gagal: ${parsed.skipped.slice(0,10).join(', ')}${parsed.skipped.length > 10 ? '...' : ''}` : '';
+    const paragraphHint = raw.indexOf('\n') === -1 && valid > 1
+      ? ' Teks terdeteksi sebagai satu paragraf panjang dan sudah berhasil dipecah otomatis.'
+      : '';
+    setHint(
+      `${valid} soal valid terdeteksi • Paket baru dari paste ini: ${readyNow} • Total paket setelah simpan: ${readyTotal}${draftAfter ? ` • Draft tersisa: ${draftAfter} soal` : ''}${skipInfo}.${paragraphHint}`,
+      'ok'
+    );
+  };
+
+  const originalBulkAddTryout = window.bulkAddTryout;
+  window.bulkAddTryout = function(){
+    originalBulkAddTryout();
+    window.previewTryoutBulk();
+  };
+
+  function bindBulkPreview(){
+    const el = document.getElementById('adminTryoutBulk');
+    if (!el || el.dataset.previewBound === '1') return;
+    el.dataset.previewBound = '1';
+    ['input','paste','keyup','change'].forEach(evt => el.addEventListener(evt, () => {
+      setTimeout(() => window.previewTryoutBulk(), evt === 'paste' ? 0 : 0);
+    }));
+    window.previewTryoutBulk();
+  }
+
+  const originalSwitchMentorTab = window.switchMentorTab;
+  window.switchMentorTab = function(tab){
+    const result = originalSwitchMentorTab ? originalSwitchMentorTab.apply(this, arguments) : undefined;
+    if (tab === 'tryout') setTimeout(bindBulkPreview, 0);
+    return result;
+  };
+
+  document.addEventListener('DOMContentLoaded', bindBulkPreview);
+  setTimeout(bindBulkPreview, 0);
+})();
+
+</script>
+
+</body>
+</html>
